@@ -3,13 +3,13 @@ indicator("Close reversal", overlay=true)
 
 // Check if today is bullish
 isBullish = close > open
-avgVolume = ta.sma(volume, 100)
+avgVolume = ta.ema(volume, 20)
 
 
 // Find the most recent bearish day's high
 lowestBearishHigh = high
 for i = 1 to 5
-    if close[i] < open[i] and volume[i] > avgVolume
+    if close[i] < open[i] and volume[i] > avgVolume[i]
         lowestBearishHigh := high[i]
         break
 
@@ -23,7 +23,7 @@ isBearish = close < open
 // Find the most recent bearish day's high
 highestBullishLow = low
 for i = 1 to 5
-    if close[i] > open[i] and volume[i] > avgVolume
+    if close[i] > open[i] and volume[i] > avgVolume[i]
         highestBullishLow := low[i]
         break
 
