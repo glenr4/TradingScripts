@@ -1,0 +1,72 @@
+//@version=4
+//author = https://www.tradingview.com/u/MattDeLong/
+
+study("Trend Following MOMO", overlay=true)
+//lh3On = input(title="Buy/Long Signal", type=input.bool, defval=true)
+//hl3On = input(title="Sell/Short Signal", type=input.bool, defval=true)
+lh3On = true
+hl3On = true
+emaOn = input(title="105ema / 30min", type=input.bool, defval=true)
+assistantOn = input(title="Assistant", type=input.bool, defval=true)
+textOn = input(title="Text", type=input.bool, defval=true)
+
+threeHigherLows() =>
+    low[0] >= low[1] and low[1] >= low[2]
+
+threeLowerHighs() =>
+    high[2] >= high[1] and high[1] >= high[0]
+
+breakHigher() =>
+    padding = timeframe.isintraday ? .02 : .1
+    high >= high[1] + padding
+
+breakLower() =>
+    padding = timeframe.isintraday ? .02 : .1
+    low <= low[1] - padding
+
+lh3 = threeLowerHighs() and lh3On
+lh3bh = lh3[1] and breakHigher() and lh3On
+
+hl3 = threeHigherLows() and hl3On
+hl3bl = hl3[1] and breakLower() and hl3On
+
+ema8 = ema(close, 8)
+ema21 = ema(close, 21)
+
+isUptrend = ema8 >= ema21
+isDowntrend = ema8 <= ema21
+trendChanging = cross(ema8,ema21)
+
+buySignal = lh3bh and lh3[2] and lh3[3] and isUptrend and timeframe.isintraday
+sellSignal = hl3bl and hl3[2] and hl3[3] and isDowntrend and timeframe.isintraday
+
+goingDown = hl3 and isDowntrend and timeframe.isintraday
+goingUp = lh3 and isUptrend and timeframe.isintraday
+
+projectXBuy = trendChanging and isUptrend
+projectXSell = trendChanging and isDowntrend
+
+//plotshape(goingDown and goingDown[1], style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+//plotshape(goingUp and goingUp[1], style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+
+//plotshape(lh3, style=shape.circle, location=location.abovebar, color=color.red, size=size.auto)
+//plotshape(hl3, style=shape.circle, location=location.belowbar, color=color.green, size=size.auto)
+plotshape(trendChanging and isUptrend and assistantOn, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small, text='Buy')
+plotshape(trendChanging and isDowntrend and assistantOn, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, text='Sell')
+plotchar(trendChanging and isUptrend and close<open and assistantOn, char='!', location=location.abovebar, color=color.green, size=size.small)
+
+aa = plot(ema8, linewidth=3, color=color.green, editable=true)
+bb = plot(ema21,linewidth=3, color=color.red, editable=true)
+fill(aa, bb, color=isUptrend ? color.green : color.red)
+buyZone =  isUptrend and lh3 and high < ema21 and timeframe.isintraday
+sellZone = isDowntrend and hl3 and low > ema21 and timeframe.isintraday
+
+
+// === ALERT === 
+alertcondition(projectXBuy, title="TradersPost Buy Alert", message="{\"time\": \"{{timenow}}\", \"interval\": \"{{interval}}\", \"ticker\": \"{{ticker}}\", \"action\": \"buy\", \"open\": {{open}}, \"high\": {{high}}, \"low\": {{low}}, \"close\": {{close}}}")
+alertcondition(projectXSell, title="TradersPost Sell Alert", message="{\"time\": \"{{timenow}}\", \"interval\": \"{{interval}}\", \"ticker\": \"{{ticker}}\", \"action\": \"sell\", \"open\": {{open}}, \"high\": {{high}}, \"low\": {{low}}, \"close\": {{close}}}")
+alertcondition(trendChanging, title="Trend Reversing", message="Trend Changing")
+alertcondition(buyZone, title="Bullish Trend Following", message="BUY Zone, Perfect")
+alertcondition(sellZone, title="Bearish Trend Following", message="SELL Zone, Perfect")
+alertcondition(buySignal, title="Long Alert", message="Long")
+alertcondition(sellSignal, title="Short Alert", message="Short")

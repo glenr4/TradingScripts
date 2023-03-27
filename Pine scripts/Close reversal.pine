@@ -1,0 +1,38 @@
+//@version=5
+indicator("Close reversal", overlay=true)
+
+// Check if today is bullish
+isBullish = close > open
+avgVolume = ta.sma(volume, 100)
+
+
+// Find the most recent bearish day's high
+lowestBearishHigh = high
+for i = 1 to 5
+    if close[i] < open[i] and volume[i] > avgVolume
+        lowestBearishHigh := high[i]
+        break
+
+// Check if today's close is above the most recent bearish day's high
+condBullish = isBullish and close > lowestBearishHigh
+
+//////////////////////////////////////////////
+// Check if today is bullish
+isBearish = close < open
+
+// Find the most recent bearish day's high
+highestBullishLow = low
+for i = 1 to 5
+    if close[i] > open[i] and volume[i] > avgVolume
+        highestBullishLow := low[i]
+        break
+
+// Check if today's close is above the most recent bearish day's low
+condBearish = isBearish and close < highestBullishLow
+
+//////////////////////////////////////////////////////////
+// Plot the green arrow when the condition is met
+plotshape(condBullish, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+
+// Plot the green arrow when the condition is met
+plotshape(condBearish, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
