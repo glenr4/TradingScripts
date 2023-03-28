@@ -7,28 +7,28 @@ avgVolume = ta.ema(volume, 20)
 
 
 // Find the most recent bearish day's high
-lowestBearishHigh = high
-for i = 1 to 5
+recentBearishHigh = high
+for i = 1 to 3
     if close[i] < open[i] and volume[i] > avgVolume[i]
-        lowestBearishHigh := high[i]
+        recentBearishHigh := high[i]
         break
 
 // Check if today's close is above the most recent bearish day's high
-condBullish = isBullish and close > lowestBearishHigh
+condBullish = isBullish and close > recentBearishHigh
 
 //////////////////////////////////////////////
 // Check if today is bullish
 isBearish = close < open
 
 // Find the most recent bearish day's high
-highestBullishLow = low
-for i = 1 to 5
+recentBullishLow = low
+for i = 1 to 3
     if close[i] > open[i] and volume[i] > avgVolume[i]
-        highestBullishLow := low[i]
+        recentBullishLow := low[i]
         break
 
 // Check if today's close is above the most recent bearish day's low
-condBearish = isBearish and close < highestBullishLow
+condBearish = isBearish and close < recentBullishLow
 
 //////////////////////////////////////////////////////////
 // Plot the green arrow when the condition is met
@@ -36,3 +36,29 @@ plotshape(condBullish, style=shape.circle, location=location.belowbar, color=col
 
 // Plot the green arrow when the condition is met
 plotshape(condBearish, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
+
+//////////////////////////////////
+highestRecentHighFn(count) => 
+    temp = array.new_float(count)
+    for i = 0 to count - 1
+        array.set(temp, i, high[i+1])
+
+    array.max(temp) // returned
+
+lowestRecentLowFn(count) => 
+    temp = array.new_float(count)
+    for i = 0 to count - 1
+        array.set(temp, i, low[i+1])
+
+    array.min(temp) // returned
+
+high3 = highestRecentHighFn(3)
+low3 = lowestRecentLowFn(3)
+
+isBullishBreakout = close > high3 and low <= low3
+
+plotshape(isBullishBreakout, style=shape.circle, location=location.belowbar, color=color.yellow, size=size.tiny)
+
+isBearishBreakout = close <low3 and high >= high3
+
+plotshape(isBearishBreakout, style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)
