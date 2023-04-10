@@ -1,0 +1,142 @@
+//@version=4
+
+// ** Copyright © MUQWISHI.  All Rights Reserved **  © MUQWISHI FEB-2021
+
+//## Note: Make Sure to Visulize It to The Front, How??....
+//## Go to Indicator's Title, Press "MORE" → "Visual Order" → "Bring to Front"
+
+
+study("Muqwishi Volumetric Candle", shorttitle="Muqwishi Candle", 
+     overlay=true, precision=1)
+
+//******************************************************************************
+//****Function's Source Created by QuantNomad Has Been Used in This Project*****
+//https://www.tradingview.com/script/8ppLWqEh-Proper-Round-Functions-QuantNomad/
+roundn(x, n) => 
+    mult = 1 
+    if n != 0
+        for i = 1 to abs(n)
+            mult := mult * 10
+    n >= 0 ? round(x * mult) / mult : round(x / mult) * mult
+//______________________________________________________________________________
+
+
+// Inputs ======================================================================
+//1-2------------------------------------------------------------Technical Input
+len= input(title="Length", type=input.integer, 
+     minval=1, defval=20, maxval=999, group= "Technical")
+
+
+//2-2 --------------------------------------------------------Candle Style Input
+LCC= input(title="Long Candle Color  ", type=input.color, defval=color.green,
+     inline="_1",  group= "Candle Style")
+
+SCC= input(title="Short Candle Color ", type=input.color, defval=color.red,
+     inline="_2",  group= "Candle Style")
+
+
+CM = input(title="Color Mode", defval="Lightness", 
+         options=["Lightness", "Saturation"], group= "Candle Style")
+
+RS = input(title="Reverse Mode", defval="No", options=["No", "Yes"], 
+         group= "Candle Style")
+
+SHC= input(title="Show Core", defval="Yes", options=["Yes", "No"], 
+         group= "Candle Style")
+
+// Color Package ===============================================================
+
+ColorLab(R, G, B, sigma)=>
+    // GRP TO HSL
+    R1= R/255,  G1=G/255,   B1=B/255
+    
+    Cmax= max(R1, G1, B1),  Cmin= min(R1, G1, B1),  delta= Cmax - Cmin
+    
+    L=0.0
+    L:= (Cmax+Cmin)/2
+    
+    H=0.0
+    if Cmax == R1
+        H:= ((G1-B1)/delta % 6) * 60
+    else if Cmax == G1
+        H:= ((B1-R1)/delta + 2) * 60
+    else if Cmax == B1
+        H:= ((R1-G1)/delta + 4) * 60
+    else 
+        H:= 0
+    
+    S=0.0
+    if delta == 0
+        S:=0
+    else
+        S:= delta/(1-abs(2 * L - 1))
+
+    // Picking the Appropriate Color
+    H1= H,  S1= S,  L1= L
+     
+    if  CM == "Lightness"
+        L1:= RS=="No"? (-35/3 * sigma + 185/3)/100: (35/3 * sigma + 115/3)/100
+        
+    else
+        S1:= RS=="No"? (15* sigma + 40)/100: (-15 * sigma + 70)/100
+        
+    // HSL TO GRB
+    C = (1- abs(2*L1-1))*S1
+    X = C * (1- abs((H1/60) % 2 - 1))
+    m = L1 - C/2
+    
+    R2=0.0, G2=0.0, B2=0.0
+    if H1 >= 0 and H < 60
+        R2:=C, G2:=X, B2:=0
+        
+    else if H1 >= 60 and H < 120
+        R2:=X, G2:=C, B2:=0
+        
+    else if H1 >= 120 and H < 180
+        R2:=0, G2:=C, B2:=X
+        
+    else if H1 >= 180 and H < 240
+        R2:=0, G2:=X, B2:=C
+        
+    else if H1 >= 240 and H < 300
+        R2:=X, G2:=0, B2:=C
+        
+    else if H1 >= 300 and H < 360
+        R2:=C, G2:=0, B2:=X
+    
+    
+    R3= (R2+m)*255,     G3=(G2+m)*255,      B3=(B2+m)*255 
+
+    [R3, G3, B3]
+
+// Technical ===================================================================
+//1-2 -------------------------------------Find Standard Deviation Value (Sigma)
+Sigma = roundn((volume-sma(volume,len))/stdev(volume, len), 1)
+
+//2-2 ----------------------------------------Sorting Standard Deviation (Sigma)
+// Define Long & Short Color
+R_Lin=color.r(LCC),     G_Lin=color.g(LCC),     B_Lin=color.b(LCC)
+R_Sin=color.r(SCC),     G_Sin=color.g(SCC),     B_Sin=color.b(SCC)
+
+[R_Lout, G_Lout, B_Lout]= ColorLab(R_Lin, G_Lin, B_Lin, Sigma)
+[R_Sout, G_Sout, B_Sout]= ColorLab(R_Sin, G_Sin, B_Sin, Sigma)
+
+// Assembly ====================================================================
+// 1-2)------------------------------------------------------------Set Bar Color
+barcolor(open <= close?  color.rgb(R_Lout, G_Lout, B_Lout, 0): 
+                         color.rgb(R_Sout, G_Sout, B_Sout, 0))
+
+// 2-2)-----------------------------------------------------------------Set Core
+[R_Lcore, G_Lcore, B_Lcore]= ColorLab(R_Lin, G_Lin, B_Lin, 0)
+[R_Score, G_Score, B_Score]= ColorLab(R_Sin, G_Sin, B_Sin, 0)
+
+plotchar(open<=close? (close-open)/2+open: (open-close)/2+close, 
+     char= SHC=="Yes"? "●": na, location=location.absolute, 
+     color=open<=close? color.rgb(R_Lcore, G_Lcore, B_Lcore, 0): 
+     color.rgb(R_Score, G_Score, B_Score, 0),
+     size= size.auto)
+
+
+plot(Sigma, color = open <= close? color.new(LCC, 100): color.new(SCC, 100))
+
+//■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
