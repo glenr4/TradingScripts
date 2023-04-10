@@ -1,0 +1,17 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=4
+study("Volume Standard Deviation", shorttitle="Volume Std Dev")
+
+len= input(title="Length", type=input.integer, 
+     minval=1, defval=20, maxval=999, group= "Technical")
+
+volumeThreshold= input(title="Volume Threshold", type=input.float, 
+     minval=-2, defval=1.5, maxval=4, group= "Technical", step=0.1)
+
+sigmaVol = (volume-sma(volume,len))/stdev(volume, len)
+plot(sigmaVol)
+
+hline(volumeThreshold)
+
