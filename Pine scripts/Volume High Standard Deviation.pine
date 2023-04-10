@@ -1,6 +1,5 @@
 //@version=4
-// Use with `Volume Standard Deviation` to help identify peaks and 
-// then set the sigmaThreshold
+
 study("Volume High Standard Deviation", shorttitle="Vol Hi Std Dev", 
      overlay=true, precision=1)
 
@@ -18,3 +17,11 @@ volLarge = volume > 0 ? sigma >= sigmaThreshold : 0
 plotshape(isBullish and volLarge, style = shape.square,  location=location.abovebar, color=color.green, size=size.tiny)
 
 plotshape(not isBullish and volLarge, style=shape.square, location=location.belowbar, color=color.red, size=size.tiny)
+
+if (isBullish and volLarge)
+    line.new(x1=bar_index, y1=high,
+         x2=bar_index + 5*len, y2=high, color=color.green)
+
+if (not isBullish and volLarge)
+    line.new(x1=bar_index, y1=low,
+         x2=bar_index + 5*len, y2=low, color=color.red)
