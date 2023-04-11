@@ -1,0 +1,29 @@
+//@version=5
+indicator('Double Top/Bottom', overlay=true)
+pivotLegs = 3
+length=10
+
+// Find pivot outside `if` block because needs to run on every bar.
+pivotHigh = ta.pivothigh(pivotLegs, pivotLegs)
+pivotLow = ta.pivotlow(pivotLegs, pivotLegs)
+// Detect a new pivot.
+newPivotHigh = not na(pivotHigh)
+newPivotLow = not na(pivotLow)
+// If a new pivot is found, save the bar index where it was found.
+barIndexHighPivot = newPivotHigh ? bar_index - pivotLegs : na
+barIndexLowPivot = newPivotLow ? bar_index - pivotLegs : na
+
+if newPivotHigh
+    label.new(barIndexHighPivot, high[pivotLegs], yloc=yloc.abovebar, style=label.style_triangledown)
+if newPivotLow
+    label.new(barIndexLowPivot, low[pivotLegs], yloc=yloc.belowbar, style=label.style_triangleup)
+
+// Need to detect when two are close together as that may be a double top/bottom
+// Probably need to search back through the series to check, last continually gets cleared
+int last = na
+if newPivotHigh
+    if math.abs(barIndexHighPivot[0] - last) < 100
+        label.new(barIndexHighPivot, high[pivotLegs], yloc=yloc.abovebar, style=label.style_label_down, color = color.red)
+    last := barIndexHighPivot[0]
+plot(barIndexHighPivot)
+plot(last)
