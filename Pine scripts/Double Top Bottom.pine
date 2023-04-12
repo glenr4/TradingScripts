@@ -1,7 +1,7 @@
 //@version=5
 indicator('Double Top/Bottom', overlay=true)
-pivotLegs = 3
-length=10
+pivotLegs = 4
+length=7
 
 // Find pivot outside `if` block because needs to run on every bar.
 pivotHigh = ta.pivothigh(pivotLegs, pivotLegs)
@@ -19,9 +19,14 @@ if newPivotLow
     label.new(barIndexLowPivot, low[pivotLegs], yloc=yloc.belowbar, style=label.style_triangleup)
 
 // Need to detect when two are close together as that may be a double top/bottom
-// Probably need to search back through the series to check, last continually gets cleared
 plot(bar_index)
-test2 = ta.valuewhen(not na(barIndexHighPivot), barIndexHighPivot, 0)
-test3 = ta.valuewhen(not na(barIndexHighPivot), barIndexHighPivot, 1)
-plot(test2)
-plot(test3)
+barIndexHighPivot1 = ta.valuewhen(not na(barIndexHighPivot), barIndexHighPivot, 0)
+barIndexHighPivot2 = ta.valuewhen(not na(barIndexHighPivot), barIndexHighPivot, 1)
+plot(barIndexHighPivot1)
+plot(barIndexHighPivot2)
+
+isDoubleTop = barIndexHighPivot1 - barIndexHighPivot2 < length
+if isDoubleTop
+    // label.new(barIndexHighPivot, high[pivotLegs], yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow)
+    label.new(barIndexHighPivot1, high[pivotLegs], yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow)
+    label.new(barIndexHighPivot2, high[pivotLegs], yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow)
