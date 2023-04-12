@@ -1,32 +1,39 @@
 //@version=5
-indicator('Double Top/Bottom', overlay=true)
-pivotLegs = 4
-length=7
+indicator('Double Top/Bottom', overlay=true, max_labels_count = 500)
+
+pivotBarLength = input(4, title="Bars either side of pivot", group= "Technical")
+length = input(8, title="Maximum bars to next pivot", group= "Technical")
 
 // Find pivot outside `if` block because needs to run on every bar.
-pivotHigh = ta.pivothigh(pivotLegs, pivotLegs)
-pivotLow = ta.pivotlow(pivotLegs, pivotLegs)
+pivotHigh = ta.pivothigh(pivotBarLength, pivotBarLength)
+pivotLow = ta.pivotlow(pivotBarLength, pivotBarLength)
+
 // Detect a new pivot.
 newPivotHigh = not na(pivotHigh)
 newPivotLow = not na(pivotLow)
+
 // If a new pivot is found, save the bar index where it was found.
-barIndexHighPivot = newPivotHigh ? bar_index - pivotLegs : na
-barIndexLowPivot = newPivotLow ? bar_index - pivotLegs : na
+barIndexHighPivot = newPivotHigh ? bar_index - pivotBarLength : na
+barIndexLowPivot = newPivotLow ? bar_index - pivotBarLength : na
 
 if newPivotHigh
-    label.new(barIndexHighPivot, high[pivotLegs], yloc=yloc.abovebar, style=label.style_triangledown)
+    label.new(barIndexHighPivot, high[pivotBarLength], yloc=yloc.abovebar, style=label.style_triangledown)
 if newPivotLow
-    label.new(barIndexLowPivot, low[pivotLegs], yloc=yloc.belowbar, style=label.style_triangleup)
+    label.new(barIndexLowPivot, low[pivotBarLength], yloc=yloc.belowbar, style=label.style_triangleup)
 
 // Need to detect when two are close together as that may be a double top/bottom
-plot(bar_index)
 barIndexHighPivot1 = ta.valuewhen(not na(barIndexHighPivot), barIndexHighPivot, 0)
 barIndexHighPivot2 = ta.valuewhen(not na(barIndexHighPivot), barIndexHighPivot, 1)
-plot(barIndexHighPivot1)
-plot(barIndexHighPivot2)
 
 isDoubleTop = barIndexHighPivot1 - barIndexHighPivot2 < length
 if isDoubleTop
-    // label.new(barIndexHighPivot, high[pivotLegs], yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow)
-    label.new(barIndexHighPivot1, high[pivotLegs], yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow)
-    label.new(barIndexHighPivot2, high[pivotLegs], yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow)
+    label.new(barIndexHighPivot1, 0, yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow, size = size.tiny)
+    label.new(barIndexHighPivot2, 0, yloc=yloc.abovebar, style=label.style_diamond, color = color.yellow, size = size.tiny)
+
+barIndexLowPivot1 = ta.valuewhen(not na(barIndexLowPivot), barIndexLowPivot, 0)
+barIndexLowPivot2 = ta.valuewhen(not na(barIndexLowPivot), barIndexLowPivot, 1)
+
+isDoubleBottom = barIndexLowPivot1 - barIndexLowPivot2 < length
+if isDoubleBottom
+    label.new(barIndexLowPivot1, 0, yloc=yloc.belowbar, style=label.style_diamond, color = color.yellow, size = size.tiny)
+    label.new(barIndexLowPivot2, 0, yloc=yloc.belowbar, style=label.style_diamond, color = color.yellow, size = size.tiny)
