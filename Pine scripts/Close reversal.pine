@@ -1,64 +1,57 @@
 //@version=5
-indicator("Close reversal", overlay=true)
+indicator("Candle Close Highlight", overlay=true)
 
-// Check if today is bullish
-isBullish = close > open
 avgVolume = ta.ema(volume, 20)
 
+// Bullish close
+isBullish = close > open
 
-// Find the most recent bearish day's high
-recentBearishHigh = high
+recentBearishHighWithHiVol = high
 for i = 1 to 3
     if close[i] < open[i] and volume[i] > avgVolume[i]
-        recentBearishHigh := high[i]
+        recentBearishHighWithHiVol := high[i]
         break
 
-// Check if today's close is above the most recent bearish day's high
-condBullish = isBullish and close > recentBearishHigh
+isBullishClose = isBullish and close > recentBearishHighWithHiVol
 
-//////////////////////////////////////////////
-// Check if today is bullish
+// Bearish close
 isBearish = close < open
 
-// Find the most recent bearish day's high
-recentBullishLow = low
+recentBullishLowWithHiVol = low
 for i = 1 to 3
     if close[i] > open[i] and volume[i] > avgVolume[i]
-        recentBullishLow := low[i]
+        recentBullishLowWithHiVol := low[i]
         break
 
-// Check if today's close is above the most recent bearish day's low
-condBearish = isBearish and close < recentBullishLow
+isBearishClose = isBearish and close < recentBullishLowWithHiVol
 
-//////////////////////////////////////////////////////////
-// Plot the green arrow when the condition is met
-plotshape(condBullish, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
-
-// Plot the green arrow when the condition is met
-plotshape(condBearish, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
-
-//////////////////////////////////
-highestRecentHighFn(count) => 
+// Bullish breakout
+highestRecentHigh(count) => 
     temp = array.new_float(count)
     for i = 0 to count - 1
         array.set(temp, i, high[i+1])
 
     array.max(temp) // returned
 
-lowestRecentLowFn(count) => 
+high3 = highestRecentHigh(3)
+isBullishBreakout = close > high3 and low <= low3
+
+// Bearish breakout
+lowestRecentLow(count) => 
     temp = array.new_float(count)
     for i = 0 to count - 1
         array.set(temp, i, low[i+1])
 
     array.min(temp) // returned
 
-high3 = highestRecentHighFn(3)
-low3 = lowestRecentLowFn(3)
+low3 = lowestRecentLow(3)
+isBearishBreakout = close <low3 and high >= high3
 
-isBullishBreakout = close > high3 and low <= low3
+// Plot all the things
+plotshape(isBullishClose, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+
+plotshape(isBearishClose, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
 
 plotshape(isBullishBreakout, style=shape.circle, location=location.belowbar, color=color.yellow, size=size.tiny)
-
-isBearishBreakout = close <low3 and high >= high3
 
 plotshape(isBearishBreakout, style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)

@@ -1,0 +1,32 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+// Red gap highlight means bearish, green mean bullish. Based off Retest Gap and Gap and Go from RLT.
+indicator("Gap Highlighter", overlay=true, max_boxes_count=500)
+
+minGapSize = input(1.0, title="Minimum gap size", group= "Technical")
+transparency = input(50, title="Transparency", group= "Technical")
+
+bullishColour = color.new(color.green, transparency)
+bearishColour = color.new(color.red, transparency)
+yesterdayBullish = close[1] > open[1]
+
+gapDown = open < close[1] - minGapSize
+
+gapDownTop = gapDown ? close[1] : na
+gapDownBottom = gapDown ? open : na
+
+gapDownColour = yesterdayBullish ? bearishColour : bullishColour
+
+box.new(bar_index[1], gapDownTop, bar_index, gapDownBottom, bgcolor=gapDownColour, border_color=gapDownColour)
+
+gapUp = open > close[1] + minGapSize
+
+gapUpTop = gapUp ? open : na
+gapUpBottom = gapUp ? close[1] : na
+
+gapUpColour = yesterdayBullish ? bearishColour : bullishColour
+
+
+box.new(bar_index[1], gapUpTop, bar_index, gapUpBottom, bgcolor=gapUpColour, border_color=gapUpColour)
