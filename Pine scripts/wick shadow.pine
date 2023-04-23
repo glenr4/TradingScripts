@@ -15,7 +15,7 @@ minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "
 
 addShadow(int offset, color newColour = na, showAsSignificantShadow = false) => 
     avgVolume = ta.ema(volume[offset], volumeAvgPeriods)
-    isHighVolume = false // volume[offset] > 0 and volume[offset] >= avgVolume[offset] * minAvgMultiplier
+    isHighVolume = volume[offset] > 0 and volume[offset] >= avgVolume[offset] * minAvgMultiplier
 
     isSignificantBar = showAsSignificantShadow
     if(isHighVolume)
@@ -48,7 +48,7 @@ addShadow(int offset, color newColour = na, showAsSignificantShadow = false) =>
 
     box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=boxColour, border_color=boxColour)
 
-addShadow(0, na)
+// addShadow(0, na)
 //////////////////
 pivotBarLength = input(4, title="Bars either side of pivot", group= "Technical")
 
