@@ -4,21 +4,22 @@
 //@version=5
 indicator("Wick Shadow", overlay = true, max_boxes_count = 500)
 
-transparency = input(80, title="Shadow Transparency", group= "Technical")
-highVolumetransparency = input(30, title="High Volume Shadow Transparency", group= "Technical")
+shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Technical")
+normalTransparency = input(80, title="Shadow Transparency", group= "Technical")
+highVolumeTransparency = input(30, title="High Volume Shadow Transparency", group= "Technical")
 minWickProportion = input.float(0.3, title="Minimum wick proportion", group= "Technical", step=0.1)
-shadowSize = input(100, title="Shadow Length", group= "Technical")
+normalShadowSize = input(20, title="Shadow Length", group= "Technical")
+highVolumeShadowSize = input(200, title="High Volume Shadow Length", group= "Technical")
 volumeAvgPeriods = input(20, title="Volume Average Periods", group= "Technical")
 minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "Technical", step=0.1)
 
-if(volume > ta.ema(volume, volumeAvgPeriods) * minAvgMultiplier)
-    transparency := highVolumetransparency
+isHighVolume = volume > 0 and volume >= ta.ema(volume, volumeAvgPeriods) * minAvgMultiplier
 
-bullishColour = color.new(color.green, transparency)
-bearishColour = color.new(color.red, transparency)
-neutralColour = color.new(color.yellow, transparency)
+transparency = isHighVolume ? highVolumeTransparency : normalTransparency
+shadowSize = isHighVolume ? highVolumeShadowSize : normalShadowSize
 
-
+bullishColour = color.new(shadowColour, transparency)
+bearishColour = color.new(shadowColour, transparency)
 
 isBullish = close > open
 body = math.abs(open - close)
