@@ -6,39 +6,59 @@ indicator("Wick Shadow", overlay = true, max_boxes_count = 500)
 
 shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Technical")
 normalTransparency = input(80, title="Shadow Transparency", group= "Technical")
-highVolumeTransparency = input(30, title="High Volume Shadow Transparency", group= "Technical")
-minWickProportion = input.float(0.3, title="Minimum wick proportion", group= "Technical", step=0.1)
+significantShadowTransparency = input(30, title="Significant Shadow Transparency", group= "Technical")
+minWickProportion = input.float(0.2, title="Minimum wick proportion", group= "Technical", step=0.1)
 normalShadowSize = input(20, title="Shadow Length", group= "Technical")
-highVolumeShadowSize = input(200, title="High Volume Shadow Length", group= "Technical")
+significantShadowSize = input(200, title="Significant Shadow Length", group= "Technical")
 volumeAvgPeriods = input(20, title="Volume Average Periods", group= "Technical")
 minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "Technical", step=0.1)
 
-isHighVolume = volume > 0 and volume >= ta.ema(volume, volumeAvgPeriods) * minAvgMultiplier
+addShadow(int offset, color newColour = na, showAsSignificantShadow = false) => 
+    avgVolume = ta.ema(volume[offset], volumeAvgPeriods)
+    isHighVolume = false // volume[offset] > 0 and volume[offset] >= avgVolume[offset] * minAvgMultiplier
 
-transparency = isHighVolume ? highVolumeTransparency : normalTransparency
-shadowSize = isHighVolume ? highVolumeShadowSize : normalShadowSize
+    isSignificantBar = showAsSignificantShadow
+    if(isHighVolume)
+        isSignificantBar := true
 
-bullishColour = color.new(shadowColour, transparency)
-bearishColour = color.new(shadowColour, transparency)
+    transparency = isSignificantBar ? significantShadowTransparency : normalTransparency
+    shadowSize = isSignificantBar ? significantShadowSize : normalShadowSize
 
-isBullish = close > open
-body = math.abs(open - close)
-fullRange = high - low
-upperWick = isBullish ? high - close : high - open
-lowerWick = isBullish ? open - low : close - low
+    boxColour = not na(newColour) ? newColour : color.new(shadowColour, transparency)
 
-// Bearish wick
-isBearishWick = upperWick >= fullRange * minWickProportion
+    isBullish = close[offset] > open[offset]
+    body = math.abs(open[offset] - close[offset])
+    fullRange = high[offset] - low[offset]
+    upperWick = isBullish ? high[offset] - close[offset] : high[offset] - open[offset]
+    lowerWick = isBullish ? open[offset] - low[offset] : close[offset] - low[offset]
 
-BearishWickTop = isBearishWick ? high : na
-BearishWickBottom = isBearishWick ? (isBullish ? close : open) : na
+    // Bearish wick
+    isBearishWick = upperWick >= fullRange * minWickProportion
 
-box.new(bar_index, BearishWickTop, bar_index + shadowSize, BearishWickBottom, bgcolor=bearishColour, border_color=bearishColour)
+    BearishWickTop = isBearishWick ? high[offset] : na
+    BearishWickBottom = isBearishWick ? (isBullish ? close[offset] : open[offset]) : na
 
-// Bullish wick
-isBullishWick = lowerWick >= fullRange * minWickProportion
+    box.new(bar_index - offset, BearishWickTop, bar_index + shadowSize - offset, BearishWickBottom, bgcolor=boxColour, border_color=boxColour)
 
-BullishWickTop = isBullishWick ? (isBullish ? open : close) : na
-BullishWickBottom = isBullishWick ? low : na
+    // Bullish wick
+    isBullishWick = lowerWick >= fullRange * minWickProportion
 
-box.new(bar_index, BullishWickTop, bar_index + 100, BullishWickBottom, bgcolor=bullishColour, border_color=bullishColour)
+    BullishWickTop = isBullishWick ? (isBullish ? open[offset] : close[offset]) : na
+    BullishWickBottom = isBullishWick ? low[offset] : na
+
+    box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=boxColour, border_color=boxColour)
+
+addShadow(0, na)
+//////////////////
+pivotBarLength = input(4, title="Bars either side of pivot", group= "Technical")
+
+// Find pivot outside `if` block because needs to run on every bar.
+pivotHigh = ta.pivothigh(pivotBarLength, pivotBarLength)
+pivotLow = ta.pivotlow(pivotBarLength, pivotBarLength)
+
+// Detect a new pivot.
+newPivotHigh = not na(pivotHigh)
+newPivotLow = not na(pivotLow)
+
+if(newPivotHigh or newPivotLow)
+    addShadow(pivotBarLength, showAsSignificantShadow = true)
