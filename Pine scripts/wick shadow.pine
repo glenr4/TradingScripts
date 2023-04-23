@@ -5,24 +5,26 @@
 indicator("Wick Shadow", overlay = true, max_boxes_count = 500)
 
 shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Technical")
-normalTransparency = input(80, title="Shadow Transparency", group= "Technical")
-significantShadowTransparency = input(30, title="Significant Shadow Transparency", group= "Technical")
+// normalTransparency = input(80, title="Shadow Transparency", group= "Technical")
+significantShadowTransparency = input(70, title="Significant Shadow Transparency", group= "Technical")
 minWickProportion = input.float(0.2, title="Minimum wick proportion", group= "Technical", step=0.1)
-normalShadowSize = input(20, title="Shadow Length", group= "Technical")
-significantShadowSize = input(200, title="Significant Shadow Length", group= "Technical")
-volumeAvgPeriods = input(20, title="Volume Average Periods", group= "Technical")
-minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "Technical", step=0.1)
+// normalShadowSize = input(20, title="Shadow Length", group= "Technical")
+significantShadowSize = input(300, title="Significant Shadow Length", group= "Technical")
+// volumeAvgPeriods = input(20, title="Volume Average Periods", group= "Technical")
+// minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "Technical", step=0.1)
 
 addShadow(int offset, color newColour = na, showAsSignificantShadow = false) => 
-    avgVolume = ta.ema(volume[offset], volumeAvgPeriods)
-    isHighVolume = volume[offset] > 0 and volume[offset] >= avgVolume[offset] * minAvgMultiplier
+    // avgVolume = ta.ema(volume[offset], volumeAvgPeriods)
+    // isHighVolume = volume[offset] > 0 and volume[offset] >= avgVolume[offset] * minAvgMultiplier
 
-    isSignificantBar = showAsSignificantShadow
-    if(isHighVolume)
-        isSignificantBar := true
+    // isSignificantBar = showAsSignificantShadow
+    // if(isHighVolume)
+    //     isSignificantBar := true
 
-    transparency = isSignificantBar ? significantShadowTransparency : normalTransparency
-    shadowSize = isSignificantBar ? significantShadowSize : normalShadowSize
+    // transparency = isSignificantBar ? significantShadowTransparency : normalTransparency
+    // shadowSize = isSignificantBar ? significantShadowSize : normalShadowSize
+    transparency = significantShadowTransparency
+    shadowSize = significantShadowSize
 
     boxColour = not na(newColour) ? newColour : color.new(shadowColour, transparency)
 
