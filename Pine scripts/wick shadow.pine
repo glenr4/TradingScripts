@@ -1,0 +1,43 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Wick Shadow", overlay = true, max_boxes_count = 500)
+
+transparency = input(80, title="Shadow Transparency", group= "Technical")
+highVolumetransparency = input(30, title="High Volume Shadow Transparency", group= "Technical")
+minWickProportion = input.float(0.3, title="Minimum wick proportion", group= "Technical", step=0.1)
+shadowSize = input(100, title="Shadow Length", group= "Technical")
+volumeAvgPeriods = input(20, title="Volume Average Periods", group= "Technical")
+minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "Technical", step=0.1)
+
+if(volume > ta.ema(volume, volumeAvgPeriods) * minAvgMultiplier)
+    transparency := highVolumetransparency
+
+bullishColour = color.new(color.green, transparency)
+bearishColour = color.new(color.red, transparency)
+neutralColour = color.new(color.yellow, transparency)
+
+
+
+isBullish = close > open
+body = math.abs(open - close)
+fullRange = high - low
+upperWick = isBullish ? high - close : high - open
+lowerWick = isBullish ? open - low : close - low
+
+// Bearish wick
+isBearishWick = upperWick >= fullRange * minWickProportion
+
+BearishWickTop = isBearishWick ? high : na
+BearishWickBottom = isBearishWick ? (isBullish ? close : open) : na
+
+box.new(bar_index, BearishWickTop, bar_index + shadowSize, BearishWickBottom, bgcolor=bearishColour, border_color=bearishColour)
+
+// Bullish wick
+isBullishWick = lowerWick >= fullRange * minWickProportion
+
+BullishWickTop = isBullishWick ? (isBullish ? open : close) : na
+BullishWickBottom = isBullishWick ? low : na
+
+box.new(bar_index, BullishWickTop, bar_index + 100, BullishWickBottom, bgcolor=bullishColour, border_color=bullishColour)
