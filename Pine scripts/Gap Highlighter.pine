@@ -6,18 +6,19 @@
 indicator("Gap Highlighter", overlay=true, max_boxes_count=500)
 
 minGapSize = input(1.0, title="Minimum gap size", group= "Technical")
-transparency = input(50, title="Transparency", group= "Technical")
-
+transparency = 50
 bullishColour = color.new(color.green, transparency)
 bearishColour = color.new(color.red, transparency)
-yesterdayBullish = close[1] > open[1]
+neutralColour = color.new(color.yellow, transparency)
 
-gapDown = open < close[1] - minGapSize
+isYesterdayBullish = close[1] > open[1]
 
-gapDownTop = gapDown ? close[1] : na
-gapDownBottom = gapDown ? open : na
+isGapDown = open < close[1] - minGapSize
 
-gapDownColour = yesterdayBullish ? bearishColour : bullishColour
+gapDownTop = isGapDown ? close[1] : na
+gapDownBottom = isGapDown ? open : na
+
+gapDownColour = isYesterdayBullish ? bearishColour : neutralColour
 
 box.new(bar_index[1], gapDownTop, bar_index, gapDownBottom, bgcolor=gapDownColour, border_color=gapDownColour)
 
@@ -26,7 +27,7 @@ gapUp = open > close[1] + minGapSize
 gapUpTop = gapUp ? open : na
 gapUpBottom = gapUp ? close[1] : na
 
-gapUpColour = yesterdayBullish ? bearishColour : bullishColour
-
+gapUpColour = isYesterdayBullish ? neutralColour : bullishColour
 
 box.new(bar_index[1], gapUpTop, bar_index, gapUpBottom, bgcolor=gapUpColour, border_color=gapUpColour)
+
