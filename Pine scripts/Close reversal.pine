@@ -5,19 +5,18 @@ indicator("Candle Close Reversal", overlay=true)
 // if a bar in the same direction is found as sometime between the two bars we are interested in, there 
 // is a small bar that can break the loop early
 
-barLookback = input.int(2, title="Candle Look Back", group= "Technical", minval = 1)
+barLookback = input.int(3, title="Candle Look Back", group= "Technical", minval = 1)
 avgPeriods = input.int(20, title="Average Periods", group= "Technical", minval = 0)
-avgBodySizeMultiplier = input.float(2.0, title="Average Body Size Multiplier", group= "Technical", step=0.1, minval = 0)
+avgBodySizeMultiplier = input.float(1.0, title="Average Body Size Multiplier", group= "Technical", step=0.1, minval = 0)
 enableHighVol = input.bool(1, title="Enable High Volume Condition", group= "Technical")
 
-avgVolume = ta.ema(volume, avgPeriods)
-body = math.abs(open - close)
-avgBody = ta.ema(body, avgPeriods)
-isLargeBody = body > avgBody * avgBodySizeMultiplier
-
+avgVolume = ta.sma(volume, avgPeriods) 
+maxPrice = 10000000.0
+minPrice = 0.0
+plot(avgVolume, "avgVolume")
 avgRange = ta.ema(high - low, avgPeriods)
 isLargeRange(i) => 
-    (high[i] - low[i]) > avgRange[i]
+    (high[i] - low[i]) > avgRange[i] * avgBodySizeMultiplier
 
 isBullish(i) =>
     close[i] > open[i]
@@ -25,10 +24,18 @@ isBearish(i) =>
     close[i] < open[i]
 
 // Bullish close
-mostRecentBearishHigh = 0.0
-for i = 1 to barLookback
-    if isBearish(i) and high[i] > mostRecentBearishHigh and (enableHighVol ? volume[i] > avgVolume[i] : 1)
-        mostRecentBearishHigh := high[i]
+getMostRecentBearishHigh() =>
+    mostRecentBearishHigh = minPrice
+
+    for i = 1 to barLookback
+        if isBearish(i) and high[i] > mostRecentBearishHigh and (enableHighVol ? volume[i] > avgVolume[i] : 1)
+            mostRecentBearishHigh := high[i]
+
+    if(mostRecentBearishHigh == minPrice)
+        mostRecentBearishHigh := maxPrice
+
+    mostRecentBearishHigh // returned value
+mostRecentBearishHigh = getMostRecentBearishHigh()
 
 isBullishClose(i) => 
     isBullish(i) and close[i] > mostRecentBearishHigh and isLargeRange(i)
@@ -39,10 +46,17 @@ for i = 1 to barLookback
         isBullishCloseSignal := false
 
 // Bearish close
-mostRecentBullishLow = 10000000.0
-for i = 1 to barLookback
-    if isBullish(i) and low[i] < mostRecentBullishLow and (enableHighVol ? volume[i] > avgVolume[i] : 1)
-        mostRecentBullishLow := low[i]
+getMostRecentBullishLow() =>
+    mostRecentBullishLow = maxPrice
+    for i = 1 to barLookback
+        if isBullish(i) and low[i] < mostRecentBullishLow and (enableHighVol ? volume[i] > avgVolume[i] : 1)
+            mostRecentBullishLow := low[i]
+
+    if(mostRecentBullishLow == maxPrice)
+        mostRecentBullishLow := minPrice
+
+    mostRecentBullishLow // returned value
+mostRecentBullishLow = getMostRecentBullishLow()
 
 isBearishClose(i) => 
     isBearish(i) and close[i] < mostRecentBullishLow and isLargeRange(i)
