@@ -4,16 +4,23 @@
 //@version=5
 indicator("Morning Star", overlay = true, max_boxes_count = 500)
 
+enableHighVol = input.bool(1, title="Enable High Volume on 2nd Candle Condition", group= "Technical")
+avgPeriods = input.int(20, title="Average Periods", group= "Technical", minval = 0)
+
 morningStarColour = color.rgb(39, 176, 64, 50)
 eveningStarColour = color.rgb(176, 39, 39, 50)
+
+avgVolume = ta.sma(volume, avgPeriods) 
 
 isBullish(i) =>
     close[i] > open[i]
 isBearish(i) => 
     close[i] < open[i]
 
-isMorningStar = isBearish(2) and isBullish(0) and low[2] > low[1] and high[2] > high[1] and low[1] < low and high[1] < high
-isEveningStar = isBullish(2) and isBearish(0) and low[2] < low[1] and high[2] < high[1] and low[1] > low and high[1] > high
+isHighVol2ndCandle = volume[1] >= avgVolume[1] or volume[2] < volume[1]
+
+isMorningStar = isBearish(2) and isBullish(0) and low[2] > low[1] and high[2] > high[1] and low[1] < low and high[1] < high and (enableHighVol ? isHighVol2ndCandle : 1)
+isEveningStar = isBullish(2) and isBearish(0) and low[2] < low[1] and high[2] < high[1] and low[1] > low and high[1] > high and (enableHighVol ? isHighVol2ndCandle : 1)
 
 if(isMorningStar)
     box.new(bar_index - 2, math.max(high[2], high[1], high), bar_index, math.min(low[2], low[1], low), bgcolor=morningStarColour, border_color=morningStarColour)
