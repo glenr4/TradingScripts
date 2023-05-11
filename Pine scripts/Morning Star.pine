@@ -1,0 +1,22 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Morning Star", overlay = true, max_boxes_count = 500)
+
+morningStarColour = color.rgb(39, 176, 64, 50)
+eveningStarColour = color.rgb(176, 39, 39, 50)
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+isMorningStar = isBearish(2) and isBullish(0) and low[2] > low[1] and high[2] > high[1] and low[1] < low and high[1] < high
+isEveningStar = isBullish(2) and isBearish(0) and low[2] < low[1] and high[2] < high[1] and low[1] > low and high[1] > high
+
+if(isMorningStar)
+    box.new(bar_index - 2, math.max(high[2], high[1], high), bar_index, math.min(low[2], low[1], low), bgcolor=morningStarColour, border_color=morningStarColour)
+
+if(isEveningStar)
+    box.new(bar_index - 2, math.max(high[2], high[1], high), bar_index, math.min(low[2], low[1], low), bgcolor=eveningStarColour, border_color=eveningStarColour)

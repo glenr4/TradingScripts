@@ -7,13 +7,13 @@ indicator("Candle Close Reversal", overlay=true)
 
 barLookback = input.int(3, title="Candle Look Back", group= "Technical", minval = 1)
 avgPeriods = input.int(20, title="Average Periods", group= "Technical", minval = 0)
-avgBodySizeMultiplier = input.float(1.0, title="Average Body Size Multiplier", group= "Technical", step=0.1, minval = 0)
+avgBodySizeMultiplier = input.float(0.1, title="Average Body Size Multiplier", group= "Technical", step=0.1, minval = 0)
 enableHighVol = input.bool(1, title="Enable High Volume Condition", group= "Technical")
 
 avgVolume = ta.sma(volume, avgPeriods) 
 maxPrice = 10000000.0
 minPrice = 0.0
-plot(avgVolume, "avgVolume")
+
 avgRange = ta.ema(high - low, avgPeriods)
 isLargeRange(i) => 
     (high[i] - low[i]) > avgRange[i] * avgBodySizeMultiplier
