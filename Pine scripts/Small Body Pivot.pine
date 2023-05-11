@@ -4,7 +4,7 @@
 //@version=5
 indicator("Small Body Pivot", overlay = true, max_labels_count = 500)
 
-pivotBarLength = input(4, title="Bars either side of pivot", group= "Technical")
+pivotBarLength = input(2, title="Bars either side of pivot", group= "Technical")
 maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "Technical", step=0.1)
 
 addLabel(int offset, bool aboveBar) => 
@@ -16,7 +16,7 @@ addLabel(int offset, bool aboveBar) =>
     hasSmallBody = body < fullRange * maxBodyProportion
 
     if(hasSmallBody)    
-        label.new(bar_index - offset, high[pivotBarLength], yloc=(aboveBar ? yloc.abovebar : yloc.belowbar), style=label.style_diamond)
+        label.new(bar_index - offset, high[pivotBarLength], yloc=(aboveBar ? yloc.abovebar : yloc.belowbar), style=label.style_diamond, size=size.tiny)
 
 // Find pivot outside `if` block because needs to run on every bar.
 pivotHigh = ta.pivothigh(pivotBarLength, pivotBarLength)
