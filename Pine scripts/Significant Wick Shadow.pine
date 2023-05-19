@@ -1,0 +1,47 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+// Highlights areas where a large wick and decent range bar has occurred. The theory is that
+// these wicks form support/resistance zones.
+
+//@version=5
+indicator("Significant Wick Shadow", overlay = true, max_boxes_count = 500)
+
+minWickSignificance = input.int(100, title="Minimum Wick Significance", group= "Technical")
+avgPeriods = input.int(20, title="Average Periods", group= "Technical")
+shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Appearance")
+transparency = input(70, title="Shadow Transparency", group= "Appearance")
+shadowSize = input(300, title="Shadow Length", group= "Appearance")
+
+boxColour = color.new(shadowColour, transparency)
+barRange = high - low
+avgRange = ta.sma(high - low, avgPeriods)
+
+isBullish(offset) =>
+    close[offset] > open[offset]
+
+addShadow(offset, isBullishWick) =>
+    isBearishWick = not isBullishWick
+
+    // Bearish wick
+    BearishWickTop = isBearishWick ? high[offset] : na
+    BearishWickBottom = isBearishWick ? (isBullish(offset) ? close[offset] : open[offset]) : na
+
+    box.new(bar_index - offset, BearishWickTop, bar_index + shadowSize - offset, BearishWickBottom, bgcolor=boxColour, border_color=boxColour)
+
+    // Bullish wick
+    BullishWickTop = isBullishWick ? (isBullish(offset) ? open[offset] : close[offset]) : na
+    BullishWickBottom = isBullishWick ? low[offset] : na
+
+    box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=boxColour, border_color=boxColour)
+
+//////////////////////////////////
+upperWickRange = isBullish(0) ? high - close : high - open
+lowerWickRange = isBullish(0) ? open - low : close - low
+
+upperWickSignificance = (barRange/avgRange * upperWickRange/barRange)*100
+lowerWickSignificance = (barRange/avgRange * lowerWickRange/barRange)*100
+
+if(upperWickSignificance >= minWickSignificance)
+    addShadow(0, 0)
+if(lowerWickSignificance >= minWickSignificance)
+    addShadow(0, 1)
