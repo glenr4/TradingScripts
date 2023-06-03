@@ -6,6 +6,8 @@ indicator("One White Soldier", overlay = true)
 
 avgPeriods = input.int(20, title="Average Periods", group= "Technical", minval = 0)
 avgBodySizeMultiplier = input.float(1.0, title="Average Body Size Multiplier", group= "Technical", step=0.1, minval = 0)
+largeRangeEnabled = input.bool(1.0, title="Enable Large Range", group= "Technical")
+engulfingEnabled = input.bool(1.0, title="Enable Engulfing Patterns", group= "Technical")
 
 avgVolume = ta.sma(volume, avgPeriods) 
 avgRange = ta.ema(high - low, avgPeriods)
@@ -18,9 +20,13 @@ isBullish(i) =>
 isBearish(i) => 
     close[i] < open[i]
 
-isOWS = isBullish(0) and isBearish(1) and close > high[1] and open > close[1] and isLargeRange(0) and isLargeRange(1)
+isOWS = isBullish(0) and isBearish(1) and close > high[1] and open >= close[1] and (largeRangeEnabled ? isLargeRange(0) and isLargeRange(1) : 1)
+isOBC = isBullish(1) and isBearish(0) and close < low[1] and open <= close[1] and (largeRangeEnabled ? isLargeRange(0) and isLargeRange(1): 1) // is One Black Crow
 
-isOBC = isBullish(1) and isBearish(0) and close < low[1] and open < close[1] and isLargeRange(0) and isLargeRange(1) // is One Black Crow
+plotshape(isOWS, style=shape.square, location=location.belowbar, color=color.yellow, size=size.tiny)
+plotshape(isOBC, style=shape.square, location=location.abovebar, color=color.yellow, size=size.tiny)
 
-plotshape(isOWS, style=shape.circle, location=location.belowbar, color=color.yellow, size=size.tiny)
-plotshape(isOBC, style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)
+isBullishEngulfing = isBullish(0) and isBearish(1) and open < close[1] and close > open[1] and (largeRangeEnabled ? isLargeRange(0): 1)
+isBearishEngulfing = isBullish(1) and isBearish(0) and open > close[1] and close < open[1] and (largeRangeEnabled ? isLargeRange(0): 1)
+plotshape(isBullishEngulfing and engulfingEnabled, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
+plotshape(isBearishEngulfing and engulfingEnabled, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
