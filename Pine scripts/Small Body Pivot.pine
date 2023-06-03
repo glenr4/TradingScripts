@@ -2,20 +2,19 @@
 // © glenrutherford4
 
 //@version=5
-indicator("Small Body Pivot", overlay = true, max_labels_count = 500)
+indicator("Small Body Pivot", overlay = true, max_labels_count = 500, max_boxes_count = 500)
 
 pivotBarLength = input(2, title="Bars either side of pivot", group= "Technical")
 maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "Technical", step=0.1)
 
-addLabel(int offset, bool aboveBar) => 
-
-    isBullish = close[offset] > open[offset]
+hasSmallBody(int offset) =>
     fullRange = high[offset] - low[offset]
     body = math.abs(open[offset] - close[offset])
 
-    hasSmallBody = body < fullRange * maxBodyProportion
+    body < fullRange * maxBodyProportion    // return value
 
-    if(hasSmallBody)    
+addLabel(int offset, bool aboveBar) => 
+    if(hasSmallBody(offset))    
         label.new(bar_index - offset, high[pivotBarLength], yloc=(aboveBar ? yloc.abovebar : yloc.belowbar), style=label.style_diamond, size=size.tiny)
 
 // Find pivot outside `if` block because needs to run on every bar.
@@ -31,3 +30,4 @@ if(newPivotHigh)
 
 if(newPivotLow)
     addLabel(pivotBarLength, false)
+
