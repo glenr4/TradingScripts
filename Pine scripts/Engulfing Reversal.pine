@@ -1,0 +1,25 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Engulfing Reversal", overlay = true, max_boxes_count = 500)
+
+engulfingColour = color.rgb(74, 229, 237, 50)
+
+avgRange = ta.sma(high - low, 20)
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+isLargeRange(i) => 
+    (high[i] - low[i]) > avgRange[i]*1.5
+
+isEngulfing = high > high[1] and low < low[1]
+isBullishEngulfing = isBullish(0) and isEngulfing
+isBearishEngulfing = isBearish(0) and isEngulfing
+
+plotshape(isBullishEngulfing, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearishEngulfing, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+
+
