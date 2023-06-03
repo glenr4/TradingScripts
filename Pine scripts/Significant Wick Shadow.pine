@@ -6,11 +6,12 @@
 //@version=5
 indicator("Significant Wick Shadow", overlay = true, max_boxes_count = 500)
 
-minWickSignificance = input.int(100, title="Minimum Wick Significance", group= "Technical")
+minWickSignificance = input.int(100, title="Minimum Wick Significance", group= "Technical", step = 5)
 avgPeriods = input.int(20, title="Average Periods", group= "Technical")
 shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Appearance")
 transparency = input(70, title="Shadow Transparency", group= "Appearance")
 shadowSize = input(300, title="Shadow Length", group= "Appearance")
+showShadow = input.bool(1, title="Show Shadow", group= "Appearance")
 
 boxColour = color.new(shadowColour, transparency)
 barRange = high - low
@@ -42,6 +43,14 @@ upperWickSignificance = (barRange/avgRange * upperWickRange/barRange)*100
 lowerWickSignificance = (barRange/avgRange * lowerWickRange/barRange)*100
 
 if(upperWickSignificance >= minWickSignificance)
-    addShadow(0, 0)
+    if(showShadow)    
+        addShadow(0, 0)
+    line.new(x1=bar_index, y1=high, x2=bar_index + shadowSize, y2=high, color=color.green, width = 1)
+
 if(lowerWickSignificance >= minWickSignificance)
-    addShadow(0, 1)
+    if(showShadow)    
+        addShadow(0, 1)
+    line.new(x1=bar_index, y1=low, x2=bar_index + shadowSize, y2=low, color=color.red, width=1)
+
+// plot(upperWickSignificance/100)
+// plot(lowerWickSignificance/100)
