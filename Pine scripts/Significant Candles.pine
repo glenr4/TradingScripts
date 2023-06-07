@@ -5,6 +5,7 @@
 indicator("Significant Candles", overlay = true)
 
 avgPeriods = input.int(20, "Average periods", group = "Common")
+lineExtensionLength = input.int(50, title="Line extension length", group= "Common")
 
 showShavedOpenCandles = input.bool(1, "Show shaved open candles", group = "Shaved Open Candles")
 avgRangeMultiplier = input.float(1.0, "Average range multiplier", group = "Shaved Open Candles", step = 0.1)
@@ -16,7 +17,6 @@ highlightHighWaves = input.bool(1, title="Highlight High Waves", group= "High Wa
 highWaveWickTolerance = input.float(0.6, title="Equal Wick Tolerance", group= "High Wave", step=0.1)
 highWaveLargeRange = input.float(1.4, title="Large Range Multiplier", group= "High Wave", step=0.1)
 maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "High Wave", step=0.1)
-highWaveLineLength = input.int(20, title="Line extension length", group= "High Wave")
 
 isBullish(offset) =>
     close[offset] > open[offset]
@@ -30,6 +30,9 @@ hasSmallBody(int offset) =>
     body < fullRange * maxBodyProportion    // return value
 
 // Shaved open candles
+shavedOpenBullishColour = color.green
+shavedOpenBearishColour = color.red
+
 upperWickRange = isBullish(0) ? high - close : high - open
 lowerWickRange = isBullish(0) ? open - low : close - low
 candleRange = high - low
@@ -39,11 +42,18 @@ isLargeRange = candleRange >= avgRange * avgRangeMultiplier
 avgVolume = ta.sma(volume, avgPeriods)
 isHighVolume = volume >= avgVolume * avgVolumeMultiplier
 
-isShavedOpenBullishCandle = isBullish(0) and lowerWickRange/candleRange <= shavedOpenWickTolerance and upperWickRange/candleRange <= shavedOpenOppositeWickTolerance and isLargeRange and isHighVolume
-isShavedOpenBearishCandle = isBearish(0) and upperWickRange/candleRange <= shavedOpenWickTolerance and lowerWickRange/candleRange <= shavedOpenOppositeWickTolerance and isLargeRange and isHighVolume
+isShavedOpenBullishCandle = isBullish(0) and lowerWickRange/candleRange <= shavedOpenWickTolerance and isLargeRange
+isStrongShavedOpenBullishCandle = isShavedOpenBullishCandle and upperWickRange/candleRange <= shavedOpenOppositeWickTolerance and isHighVolume
+isShavedOpenBearishCandle = isBearish(0) and upperWickRange/candleRange <= shavedOpenWickTolerance and isLargeRange
+isStrongShavedOpenBearishCandle = isShavedOpenBearishCandle and lowerWickRange/candleRange <= shavedOpenOppositeWickTolerance and isHighVolume
 
-plotshape(isShavedOpenBullishCandle, style=shape.xcross, location=location.belowbar, color=color.yellow, size=size.tiny)
-plotshape(isShavedOpenBearishCandle, style=shape.xcross, location=location.abovebar, color=color.yellow, size=size.tiny)
+plotshape(isStrongShavedOpenBullishCandle, style=shape.xcross, location=location.belowbar, color=color.yellow, size=size.tiny)
+plotshape(isStrongShavedOpenBearishCandle, style=shape.xcross, location=location.abovebar, color=color.yellow, size=size.tiny)
+
+if(isShavedOpenBullishCandle)
+    line.new(x1=bar_index, y1=low, x2=bar_index + lineExtensionLength, y2=low, color=shavedOpenBullishColour, width=1)
+if(isShavedOpenBearishCandle)
+    line.new(x1=bar_index, y1=high, x2=bar_index + lineExtensionLength, y2=high, color=shavedOpenBearishColour, width=1)
 
 // High volume
 barcolor(isHighVolume and isBullish(0) ? color.green : na)
@@ -61,5 +71,7 @@ isHighWave = hasSmallBody(0) and areEqualWicks and largeRange
 
 if(isHighWave and highlightHighWaves)
     box.new(bar_index-1, high, bar_index+1, low, bgcolor=highWaveColour, border_color=highWaveColour)
-    line.new(x1=bar_index, y1=low, x2=bar_index + highWaveLineLength, y2=low, color=highWaveColour, width=1)
-    line.new(x1=bar_index, y1=high, x2=bar_index + highWaveLineLength, y2=high, color=highWaveColour, width=1)
+    line.new(x1=bar_index, y1=low, x2=bar_index + lineExtensionLength, y2=low, color=highWaveColour, width=1)
+    line.new(x1=bar_index, y1=high, x2=bar_index + lineExtensionLength, y2=high, color=highWaveColour, width=1)
+
+
