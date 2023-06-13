@@ -40,7 +40,7 @@ avgRange = ta.sma(candleRange, avgPeriods)
 isLargeRange = candleRange >= avgRange * avgRangeMultiplier
 
 avgVolume = ta.sma(volume, avgPeriods)
-isHighVolume = volume >= avgVolume * avgVolumeMultiplier
+isHighVolume = volume >= avgVolume * avgVolumeMultiplier and volume > 0
 
 isShavedOpenBullishCandle = isBullish(0) and lowerWickRange/candleRange <= shavedOpenWickTolerance and isLargeRange
 isStrongShavedOpenBullishCandle = isShavedOpenBullishCandle and upperWickRange/candleRange <= shavedOpenOppositeWickTolerance and isHighVolume
@@ -50,14 +50,14 @@ isStrongShavedOpenBearishCandle = isShavedOpenBearishCandle and lowerWickRange/c
 plotshape(isStrongShavedOpenBullishCandle, style=shape.xcross, location=location.belowbar, color=color.yellow, size=size.tiny)
 plotshape(isStrongShavedOpenBearishCandle, style=shape.xcross, location=location.abovebar, color=color.yellow, size=size.tiny)
 
-if(isShavedOpenBullishCandle)
+if(isShavedOpenBullishCandle and showShavedOpenCandles)
     line.new(x1=bar_index, y1=low, x2=bar_index + lineExtensionLength, y2=low, color=shavedOpenBullishColour, width=1)
-if(isShavedOpenBearishCandle)
+if(isShavedOpenBearishCandle and showShavedOpenCandles)
     line.new(x1=bar_index, y1=high, x2=bar_index + lineExtensionLength, y2=high, color=shavedOpenBearishColour, width=1)
 
 // High volume
-barcolor(isHighVolume and isBullish(0) ? color.green : na)
-barcolor(isHighVolume and isBearish(0) ? color.red : na)
+barcolor(isHighVolume and isBullish(0) and showShavedOpenCandles ? color.green : na)
+barcolor(isHighVolume and isBearish(0) and showShavedOpenCandles ? color.red : na)
 
 // Highwave
 highWaveColour = color.rgb(12, 216, 243, 50)
