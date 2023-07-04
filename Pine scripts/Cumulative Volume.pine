@@ -1,0 +1,21 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Cumulative Volume")
+
+barLookback = input.int(5, title="Candle Look Back", group= "Technical", minval = 1)
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+cumulativeVolume(lookbackLength) =>
+    total = 0.0
+    for i=0 to lookbackLength - 1
+        total += volume[i] * (isBullish(i) ? 1 : -1)
+
+total = cumulativeVolume(barLookback)
+barColour = total[0] >= 0 ? color.green : color.red
+plot(total, linewidth = 5, style=plot.style_histogram, color=barColour)
