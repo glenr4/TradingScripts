@@ -12,6 +12,7 @@ fib_factor = input.float(0.33, "Fib Factor for breakout confirmation", 0, 1, 0.0
 text_size = input.string(size.tiny, "Text Size", [size.tiny, size.small, size.normal, size.large, size.huge], group=settings)
 
 delete_boxes = input.bool(true, "Delete Old/Broken Boxes", group=settings)
+show_bb = input.bool(false, "Show BB Boxes", group=settings)
 
 // Bu: Bull
 // Be: Bear
@@ -153,17 +154,19 @@ if ta.change(market) != 0
     if market == 1
         line.new(h1i, h1, h0i, h1, color=color.green, width=2)
         label.new(int(math.avg(h1i, l0i)), h1, "MSB", color=color.new(color.black, 100), style=label.style_label_down, textcolor=color.green, size=size.small)
-        bu_ob = box.new(bu_ob_index, high[bu_ob_since], bar_index + 10, low[bu_ob_since], bgcolor=bu_ob_color, border_color=bu_ob_border_color, text="Bu-OB", text_color=bu_ob_text_color, text_halign=text.align_right, text_size=text_size)
-        bu_bb = box.new(bu_bb_index, high[bu_bb_since], bar_index + 10, low[bu_bb_since], bgcolor=bu_bb_color, border_color=bu_bb_border_color, text=l0 < l1 ? "Bu-BB" : "Bu-MB", text_color=bu_bb_text_color, text_halign=text.align_right, text_size=text_size)
+        bu_ob = box.new(bu_ob_index, high[bu_ob_since], bar_index + 10, low[bu_ob_since], bgcolor=bu_ob_color, border_color=bu_ob_border_color, text="OB", text_color=bu_ob_text_color, text_halign=text.align_right, text_size=text_size)
         array.push(bu_ob_boxes, bu_ob)
-        array.push(bu_bb_boxes, bu_bb)
+        if show_bb
+            bu_bb = box.new(bu_bb_index, high[bu_bb_since], bar_index + 10, low[bu_bb_since], bgcolor=bu_bb_color, border_color=bu_bb_border_color, text=l0 < l1 ? "BB" : "MB", text_color=bu_bb_text_color, text_halign=text.align_right, text_size=text_size)
+            array.push(bu_bb_boxes, bu_bb)
     if market == -1
         line.new(l1i, l1, l0i, l1, color=color.red, width=2)
         label.new(int(math.avg(l1i, h0i)), l1, "MSB", color=color.new(color.black, 100), style=label.style_label_up, textcolor=color.red, size=size.small)
-        be_ob = box.new(be_ob_index, high[be_ob_since], bar_index + 10, low[be_ob_since], bgcolor=be_ob_color, border_color=be_ob_border_color, text="Be-OB", text_color=be_ob_text_color, text_halign=text.align_right, text_size=text_size)
-        be_bb = box.new(be_bb_index, high[be_bb_since], bar_index + 10, low[be_bb_since], bgcolor=be_bb_color, border_color=be_bb_border_color, text=h0 > h1 ? "Be-BB" : "Be-MB", text_color=be_bb_text_color, text_halign=text.align_right, text_size=text_size)
+        be_ob = box.new(be_ob_index, high[be_ob_since], bar_index + 10, low[be_ob_since], bgcolor=be_ob_color, border_color=be_ob_border_color, text="OB", text_color=be_ob_text_color, text_halign=text.align_right, text_size=text_size)
         array.push(be_ob_boxes, be_ob)
-        array.push(be_bb_boxes, be_bb)
+        if show_bb
+            be_bb = box.new(be_bb_index, high[be_bb_since], bar_index + 10, low[be_bb_since], bgcolor=be_bb_color, border_color=be_bb_border_color, text=h0 > h1 ? "BB" : "MB", text_color=be_bb_text_color, text_halign=text.align_right, text_size=text_size)
+            array.push(be_bb_boxes, be_bb)
 
 for bull_ob in bu_ob_boxes
     bottom = box.get_bottom(bull_ob)
@@ -185,25 +188,26 @@ for bear_ob in be_ob_boxes
     else
         box.set_right(bear_ob, bar_index + 10)
         
-for bear_bb in be_bb_boxes
-    top = box.get_top(bear_bb)
-    bottom = box.get_bottom(bear_bb)
-    if close > top
-        f_delete_box(be_bb_boxes)
-    else if close > bottom
-        alert("Price in the BE-BB zone")
-    else
-        box.set_right(bear_bb, bar_index + 10)
-        
-for bull_bb in bu_bb_boxes
-    bottom = box.get_bottom(bull_bb)
-    top = box.get_top(bull_bb)
-    if close < bottom
-        f_delete_box(bu_bb_boxes)
-    else if close < top
-        alert("Price in the BU-BB zone")
-    else
-        box.set_right(bull_bb, bar_index + 10)
+if show_bb
+    for bear_bb in be_bb_boxes
+        top = box.get_top(bear_bb)
+        bottom = box.get_bottom(bear_bb)
+        if close > top
+            f_delete_box(be_bb_boxes)
+        else if close > bottom
+            alert("Price in the BE-BB zone")
+        else
+            box.set_right(bear_bb, bar_index + 10)
+            
+    for bull_bb in bu_bb_boxes
+        bottom = box.get_bottom(bull_bb)
+        top = box.get_top(bull_bb)
+        if close < bottom
+            f_delete_box(bu_bb_boxes)
+        else if close < top
+            alert("Price in the BU-BB zone")
+        else
+            box.set_right(bull_bb, bar_index + 10)
 
 
 alertcondition(ta.change(market) != 0, "MSB", "MSB")
