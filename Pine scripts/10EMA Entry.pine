@@ -1,0 +1,23 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("10EMA Entry", overlay = true)
+
+ema = ta.ema(close, 10)
+plot(ema, linewidth = 2, color = color.yellow)
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+bullishSignal = isBearish(0) and close >= ema
+bearishSignal = isBullish(0) and close <= ema
+
+plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
+plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
+
+alertcondition(bullishSignal, "10EMA Bullish Entry", "10EMA bullish entry")
+alertcondition(bearishSignal, "10EMA Bearish Entry", "10EMA bearish entry")
+
