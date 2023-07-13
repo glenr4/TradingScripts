@@ -15,9 +15,30 @@ isBearish(i) =>
 bullishSignal = isBearish(0) and close >= ema
 bearishSignal = isBullish(0) and close <= ema
 
-plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
-plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
+// plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
+// plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
 
 alertcondition(bullishSignal, "10EMA Bullish Entry", "10EMA bullish entry")
 alertcondition(bearishSignal, "10EMA Bearish Entry", "10EMA bearish entry")
 
+leftBars = input(2)
+rightBars=input(2)
+entryLookbackBars=input(4)
+ph = ta.pivothigh(ema, leftBars, rightBars)
+plot(ph, style=plot.style_cross, linewidth=3, color= color.red, offset=-rightBars)
+
+pl = ta.pivotlow(ema, leftBars, rightBars)
+plot(pl, style=plot.style_cross, linewidth=3, color= color.green, offset=-rightBars)
+
+pivotLookback(pivot, rightBars, lookback) =>
+    returnValue = false
+
+    if lookback >= rightBars
+        for i=0 to lookback - rightBars
+            if(not na(pivot[i]))
+                returnValue := true
+                break
+    returnValue
+
+plotshape(bearishSignal and pivotLookback(ph, rightBars, entryLookbackBars), style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
+plotshape(bullishSignal and pivotLookback(pl, rightBars, entryLookbackBars), style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
