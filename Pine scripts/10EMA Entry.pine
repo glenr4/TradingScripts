@@ -18,8 +18,7 @@ bearishSignal = isBullish(0) and close <= ema
 // plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
 // plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
 
-alertcondition(bullishSignal, "10EMA Bullish Entry", "10EMA bullish entry")
-alertcondition(bearishSignal, "10EMA Bearish Entry", "10EMA bearish entry")
+
 
 leftBars = input(2)
 rightBars=input(2)
@@ -40,5 +39,13 @@ pivotLookback(pivot, rightBars, lookback) =>
                 break
     returnValue
 
-plotshape(bearishSignal and pivotLookback(ph, rightBars, entryLookbackBars), style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
-plotshape(bullishSignal and pivotLookback(pl, rightBars, entryLookbackBars), style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
+isBullishEntry = bullishSignal and pivotLookback(pl, rightBars, entryLookbackBars)
+isBearishEntry = bearishSignal and pivotLookback(ph, rightBars, entryLookbackBars)
+plotshape(isBullishEntry, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
+plotshape(isBearishEntry, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
+
+// Could I use the pivot points as the alerts instead?
+// Could I use the space between pivots as a filter ie minimum distance to be a valid signal (sideways price action has a lot of pivots close together)
+
+alertcondition(isBullishEntry, "10EMA Bullish Entry", "10EMA bullish entry")
+alertcondition(isBearishEntry, "10EMA Bearish Entry", "10EMA bearish entry")
