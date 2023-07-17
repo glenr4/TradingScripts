@@ -21,7 +21,7 @@ plot(rvwap1Day, linewidth = 2, color = color.orange)
 // Pivots
 leftBars = input(2)
 rightBars=input(2)
-entryLookbackBars=input(4)
+entryLookbackBars=input(6)
 ph = ta.pivothigh(ema, leftBars, rightBars)
 plot(ph, style=plot.style_cross, linewidth=3, color= color.red, offset=-rightBars)
 
@@ -42,13 +42,12 @@ pivotLookback(pivot, rightBars, lookback) =>
 bullishSignal = isBearish(0) and close >= ema
 bearishSignal = isBullish(0) and close <= ema
 
-// isBullishEntry = bullishSignal and pivotLookback(pl, rightBars, entryLookbackBars)
-// isBearishEntry = bearishSignal and pivotLookback(ph, rightBars, entryLookbackBars)
 isBullishEntry = bullishSignal and ema > rvwap1Day
 isBearishEntry = bearishSignal and ema < rvwap1Day
 
 plotshape(isBullishEntry, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
 plotshape(isBearishEntry, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
 
-alertcondition(isBullishEntry, "10EMA Bullish Entry", "10EMA bullish entry")
-alertcondition(isBearishEntry, "10EMA Bearish Entry", "10EMA bearish entry")
+// Reduce frequency of alerts by proximity to pivots
+alertcondition(isBullishEntry and pivotLookback(pl, rightBars, entryLookbackBars), "10EMA Bullish Entry", "10EMA bullish entry")
+alertcondition(isBearishEntry and pivotLookback(ph, rightBars, entryLookbackBars), "10EMA Bearish Entry", "10EMA bearish entry")
