@@ -5,19 +5,32 @@
 indicator("Volume and Body Multiples")
 
 avgPeriods = input.int(100, title="Average Periods", group= "Technical", minval = 0)
-highVolume = input.float(3.0, title="High Volume Threshold", group= "Technical", minval = 0, step = 0.1)
-largeBody = input.float(4.5, title="Large Body Threshold", group= "Technical", minval = 0, step = 0.1)
+highVolumeMultiple = input.float(3.0, title="High Volume Threshold", group= "Technical", minval = 0, step = 0.1)
+largeBodyMultiple = input.float(4.5, title="Large Body Threshold", group= "Technical", minval = 0, step = 0.1)
 
+isBullish(offset) =>
+    close[offset] > open[offset]
+isBearish(i) => 
+    close[i] < open[i]
+
+// Volume
 avgVolume = ta.sma(volume, avgPeriods) 
 volumeMultiple = volume / avgVolume
 plot(volumeMultiple, "Volume multiple", color = color.blue)
-hline(highVolume, color = color.blue)
+hline(highVolumeMultiple, color = color.blue)
 
+isHighVolume = volumeMultiple >= highVolumeMultiple
+alertcondition(isHighVolume, "High Volume", "High volume")
+
+// Body
 bodySize = math.abs(close - open)
 avgBodySize = ta.sma(bodySize, avgPeriods)
 bodyMultiple = bodySize / avgBodySize
 plot(bodyMultiple, "Body multiple", color = color.red)
-hline(largeBody, color = color.red)
+hline(largeBodyMultiple, color = color.red)
 
-alertcondition(volumeMultiple >= highVolume, "High Volume", "High volume")
-alertcondition(bodyMultiple >= largeBody, "Large Body", "Large body")
+alertcondition(bodyMultiple >= largeBodyMultiple, "Large Body", "Large body")
+
+// High volume highlight
+barcolor(isHighVolume and isBullish(0) ? color.green : na)
+barcolor(isHighVolume and isBearish(0) ? color.red : na)
