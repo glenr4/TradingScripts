@@ -4,22 +4,21 @@
 //@version=5
 indicator("10EMA Entry", overlay = true)
 
-ema = ta.ema(close, 10)
-plot(ema, linewidth = 2, color = color.yellow)
+import glenrutherford4/RollingVWAPLib/2 as rvwap
 
 isBullish(i) =>
     close[i] > open[i]
 isBearish(i) => 
     close[i] < open[i]
 
-bullishSignal = isBearish(0) and close >= ema
-bearishSignal = isBullish(0) and close <= ema
+// Indiacators
+ema = ta.ema(close, 10)
+plot(ema, linewidth = 2, color = color.yellow)
 
-// plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
-// plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
+rvwap1Day = rvwap.days(1)
+plot(rvwap1Day, linewidth = 2, color = color.orange)
 
-
-
+// Pivots
 leftBars = input(2)
 rightBars=input(2)
 entryLookbackBars=input(4)
@@ -39,13 +38,17 @@ pivotLookback(pivot, rightBars, lookback) =>
                 break
     returnValue
 
-isBullishEntry = bullishSignal and pivotLookback(pl, rightBars, entryLookbackBars)
-isBearishEntry = bearishSignal and pivotLookback(ph, rightBars, entryLookbackBars)
+// Signals
+bullishSignal = isBearish(0) and close >= ema
+bearishSignal = isBullish(0) and close <= ema
+
+// isBullishEntry = bullishSignal and pivotLookback(pl, rightBars, entryLookbackBars)
+// isBearishEntry = bearishSignal and pivotLookback(ph, rightBars, entryLookbackBars)
+isBullishEntry = bullishSignal and ema > rvwap1Day
+isBearishEntry = bearishSignal and ema < rvwap1Day
+
 plotshape(isBullishEntry, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
 plotshape(isBearishEntry, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
-
-// Could I use the pivot points as the alerts instead?
-// Could I use the space between pivots as a filter ie minimum distance to be a valid signal (sideways price action has a lot of pivots close together)
 
 alertcondition(isBullishEntry, "10EMA Bullish Entry", "10EMA bullish entry")
 alertcondition(isBearishEntry, "10EMA Bearish Entry", "10EMA bearish entry")
