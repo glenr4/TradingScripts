@@ -7,22 +7,24 @@ indicator("Significant Candles", overlay = true, max_boxes_count = 500)
 avgPeriods = input.int(100, "Average periods", group = "Common")
 lineExtensionLength = input.int(50, title="Line extension length", group= "Common")
 avgVolumeMultiplier = input.float(2.5, "Average volume multiplier", group = "Common", step = 0.1)
+showHighVolHighlight = input.bool(0, "Highlight high volume candles", group = "Common")
 
-showShavedOpenCandles = input.bool(0, "Show shaved open candles", group = "Shaved Open Candles")
+showShavedOpenCandles = input.bool(1, "Show shaved open candles", group = "Shaved Open Candles")
 avgRangeMultiplier = input.float(1.0, "Average range multiplier", group = "Shaved Open Candles", step = 0.1)
 shavedOpenWickTolerance = input.float(0.05, "Shaved open wick tolerance", group = "Shaved Open Candles", step = 0.01)
 shavedOpenOppositeWickTolerance = input.float(0.35, "Shaved open opposite wick tolerance", group = "Shaved Open Candles", step = 0.01)
+int i_maxLineLength = input.int(400, "Max line extension length", group = "Shaved Open Candles", minval = 2)
 
 highlightHighWaves = input.bool(0, title="Highlight High Waves", group= "High Wave")
 highWaveWickTolerance = input.float(0.6, title="Equal Wick Tolerance", group= "High Wave", step=0.1)
 highWaveLargeRange = input.float(1.4, title="Large Range Multiplier", group= "High Wave", step=0.1)
 maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "High Wave", step=0.1)
 
-highlightSmallBodies = input.bool(1, title="Highlight small bodies", group= "Small Body")
+highlightSmallBodies = input.bool(0, title="Highlight small bodies", group= "Small Body")
 avgSmallBodyPeriods = input.int(100, "Average periods", group = "Small Body")
 maxSmallBodyProportion = input.float(0.5, title="Maximum body relative to average", group= "Small Body", step=0.1)
 
-highlightSmallRanges = input.bool(1, title="Highlight small ranges", group= "Small Body")
+highlightSmallRanges = input.bool(0, title="Highlight small ranges", group= "Small Body")
 
 
 isBullish(offset) =>
@@ -36,35 +38,62 @@ hasSmallBody(int offset) =>
 
     body < fullRange * maxBodyProportion    // return value
 
-// Shaved open candles
-shavedOpenBullishColour = color.green
-shavedOpenBearishColour = color.red
+// High volume
+avgVolume = ta.sma(volume, avgPeriods)
+isHighVolume = volume >= avgVolume * avgVolumeMultiplier and volume > 0
+barcolor(showHighVolHighlight and isHighVolume and isBullish(0) ? color.green : na)
+barcolor(showHighVolHighlight and isHighVolume and isBearish(0) ? color.red : na)
 
+// Shaved open candles
 upperWickRange = isBullish(0) ? high - close : high - open
 lowerWickRange = isBullish(0) ? open - low : close - low
 candleRange = high - low
 avgRange = ta.sma(candleRange, avgPeriods)
 isLargeRange = candleRange >= avgRange * avgRangeMultiplier
 
-avgVolume = ta.sma(volume, avgPeriods)
-isHighVolume = volume >= avgVolume * avgVolumeMultiplier and volume > 0
 
 isShavedOpenBullishCandle = isBullish(0) and lowerWickRange/candleRange <= shavedOpenWickTolerance and isLargeRange
-isStrongShavedOpenBullishCandle = isShavedOpenBullishCandle and upperWickRange/candleRange <= shavedOpenOppositeWickTolerance // and isHighVolume
+isStrongShavedOpenBullishCandle = isShavedOpenBullishCandle and upperWickRange/candleRange <= shavedOpenOppositeWickTolerance
 isShavedOpenBearishCandle = isBearish(0) and upperWickRange/candleRange <= shavedOpenWickTolerance and isLargeRange
-isStrongShavedOpenBearishCandle = isShavedOpenBearishCandle and lowerWickRange/candleRange <= shavedOpenOppositeWickTolerance // and isHighVolume
+isStrongShavedOpenBearishCandle = isShavedOpenBearishCandle and lowerWickRange/candleRange <= shavedOpenOppositeWickTolerance
 
-plotshape(isStrongShavedOpenBullishCandle and showShavedOpenCandles, style=shape.xcross, location=location.belowbar, color=color.yellow, size=size.tiny)
-plotshape(isStrongShavedOpenBearishCandle and showShavedOpenCandles, style=shape.xcross, location=location.abovebar, color=color.yellow, size=size.tiny)
+//////////////////////////////
+// Extend lines until they are crossed (by close)
+// https://www.tradingview.com/pine-script-docs/en/v5/language/Loops.html
+// https://stackoverflow.com/a/68733918
+var line[] shavedOpenLines = array.new_line(0)
 
-if(isStrongShavedOpenBullishCandle and showShavedOpenCandles)
-    line.new(x1=bar_index, y1=low, x2=bar_index + lineExtensionLength, y2=low, color=color.yellow, width=1)
-if(isStrongShavedOpenBearishCandle and showShavedOpenCandles)
-    line.new(x1=bar_index, y1=high, x2=bar_index + lineExtensionLength, y2=high, color=color.yellow, width=1)
+adjustHorizontalLineEnd(_arrayOfLines) =>
+    int _qtyOfLines = array.size(_arrayOfLines)
+    if _qtyOfLines > 0
+        for _i = _qtyOfLines - 1 to 0
+            line  _currentLine = array.get(_arrayOfLines, _i)
+            float _lineLevel   = line.get_price(_currentLine, bar_index)
+            bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel)
+            line.set_x2(_currentLine, bar_index)
+            if _lineCrossed or bar_index - line.get_x1(_currentLine) > i_maxLineLength
+                array.remove(_arrayOfLines, _i)
+////////////////////////////
 
-// High volume
-barcolor(isHighVolume and isBullish(0) ? color.green : na)
-barcolor(isHighVolume and isBearish(0) ? color.red : na)
+// Add lines with zero length initially
+if isStrongShavedOpenBullishCandle
+    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=low, x2=bar_index, y2= low, style=line.style_solid, color=color.aqua)) 
+if isStrongShavedOpenBearishCandle
+    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=high, x2=bar_index, y2= high, style=line.style_solid, color=color.aqua))
+// Adjust line length of all lines
+adjustHorizontalLineEnd(shavedOpenLines)
+
+// plotshape(isStrongShavedOpenBullishCandle and showShavedOpenCandles, style=shape.xcross, location=location.belowbar, color=color.aqua, size=size.tiny)
+// plotshape(isStrongShavedOpenBearishCandle and showShavedOpenCandles, style=shape.xcross, location=location.abovebar, color=color.aqua, size=size.tiny)
+barcolor(isStrongShavedOpenBullishCandle and showShavedOpenCandles ? color.aqua : na)
+barcolor(isStrongShavedOpenBearishCandle and showShavedOpenCandles ? color.aqua : na)
+
+// if(isStrongShavedOpenBullishCandle and showShavedOpenCandles)
+//     line.new(x1=bar_index, y1=low, x2=bar_index + lineExtensionLength, y2=low, color=color.yellow, width=1)
+// if(isStrongShavedOpenBearishCandle and showShavedOpenCandles)
+//     line.new(x1=bar_index, y1=high, x2=bar_index + lineExtensionLength, y2=high, color=color.yellow, width=1)
+
+
 
 // Highwave
 highWaveColour = color.rgb(12, 216, 243, 50)
