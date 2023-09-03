@@ -69,7 +69,7 @@ adjustHorizontalLineEnd(_arrayOfLines) =>
         for _i = _qtyOfLines - 1 to 0
             line  _currentLine = array.get(_arrayOfLines, _i)
             float _lineLevel   = line.get_price(_currentLine, bar_index)
-            bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel)
+            bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel) and bar_index != line.get_x1(_currentLine)
             line.set_x2(_currentLine, bar_index)
             if _lineCrossed or bar_index - line.get_x1(_currentLine) > i_maxLineLength
                 array.remove(_arrayOfLines, _i)
@@ -77,23 +77,14 @@ adjustHorizontalLineEnd(_arrayOfLines) =>
 
 // Add lines with zero length initially
 if isStrongShavedOpenBullishCandle
-    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=low, x2=bar_index, y2= low, style=line.style_solid, color=color.aqua)) 
+    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=low, x2=bar_index + lineExtensionLength, y2= low, style=line.style_solid, color=color.aqua)) 
 if isStrongShavedOpenBearishCandle
-    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=high, x2=bar_index, y2= high, style=line.style_solid, color=color.aqua))
+    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=high, x2=bar_index + lineExtensionLength, y2= high, style=line.style_solid, color=color.aqua))
 // Adjust line length of all lines
 adjustHorizontalLineEnd(shavedOpenLines)
 
-// plotshape(isStrongShavedOpenBullishCandle and showShavedOpenCandles, style=shape.xcross, location=location.belowbar, color=color.aqua, size=size.tiny)
-// plotshape(isStrongShavedOpenBearishCandle and showShavedOpenCandles, style=shape.xcross, location=location.abovebar, color=color.aqua, size=size.tiny)
-barcolor(isStrongShavedOpenBullishCandle and showShavedOpenCandles ? color.aqua : na)
-barcolor(isStrongShavedOpenBearishCandle and showShavedOpenCandles ? color.aqua : na)
-
-// if(isStrongShavedOpenBullishCandle and showShavedOpenCandles)
-//     line.new(x1=bar_index, y1=low, x2=bar_index + lineExtensionLength, y2=low, color=color.yellow, width=1)
-// if(isStrongShavedOpenBearishCandle and showShavedOpenCandles)
-//     line.new(x1=bar_index, y1=high, x2=bar_index + lineExtensionLength, y2=high, color=color.yellow, width=1)
-
-
+plotshape(isStrongShavedOpenBullishCandle and showShavedOpenCandles, style=shape.xcross, location=location.belowbar, color=color.aqua, size=size.tiny)
+plotshape(isStrongShavedOpenBearishCandle and showShavedOpenCandles, style=shape.xcross, location=location.abovebar, color=color.aqua, size=size.tiny)
 
 // Highwave
 highWaveColour = color.rgb(12, 216, 243, 50)
