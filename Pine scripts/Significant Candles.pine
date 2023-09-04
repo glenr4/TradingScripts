@@ -2,7 +2,7 @@
 // © glenrutherford4
 
 //@version=5
-indicator("Significant Candles", overlay = true, max_boxes_count = 500)
+indicator("Significant Candles", overlay = true, max_boxes_count = 500, max_lines_count = 500)
 
 avgPeriods = input.int(100, "Average periods", group = "Common")
 lineExtensionLength = input.int(50, title="Line extension length", group= "Common")
@@ -13,6 +13,7 @@ showShavedOpenCandles = input.bool(1, "Show shaved open candles", group = "Shave
 avgRangeMultiplier = input.float(1.0, "Average range multiplier", group = "Shaved Open Candles", step = 0.1)
 shavedOpenWickTolerance = input.float(0.05, "Shaved open wick tolerance", group = "Shaved Open Candles", step = 0.01)
 shavedOpenOppositeWickTolerance = input.float(0.35, "Shaved open opposite wick tolerance", group = "Shaved Open Candles", step = 0.01)
+stopShavedOpenAtCloseCross = input.bool(1, "Stop line extension at close cross", group = "Shaved Open Candles")
 int i_maxLineLength = input.int(400, "Max line extension length", group = "Shaved Open Candles", minval = 2)
 
 highlightHighWaves = input.bool(0, title="Highlight High Waves", group= "High Wave")
@@ -63,28 +64,37 @@ isStrongShavedOpenBearishCandle = isShavedOpenBearishCandle and lowerWickRange/c
 // https://stackoverflow.com/a/68733918
 var line[] shavedOpenLines = array.new_line(0)
 
-adjustHorizontalLineEnd(_arrayOfLines) =>
+adjustHorizontalLineEnd(_arrayOfLines, stopExtensionOnCloseCross, fixedExtensionLength) =>
     int _qtyOfLines = array.size(_arrayOfLines)
     if _qtyOfLines > 0
         for _i = _qtyOfLines - 1 to 0
             line  _currentLine = array.get(_arrayOfLines, _i)
             float _lineLevel   = line.get_price(_currentLine, bar_index)
-            bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel) and bar_index != line.get_x1(_currentLine)
-            line.set_x2(_currentLine, bar_index)
-            if _lineCrossed or bar_index - line.get_x1(_currentLine) > i_maxLineLength
-                array.remove(_arrayOfLines, _i)
+            
+            if stopExtensionOnCloseCross
+                bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel) and bar_index != line.get_x1(_currentLine)
+                line.set_x2(_currentLine, bar_index)
+                if _lineCrossed or bar_index - line.get_x1(_currentLine) > i_maxLineLength
+                    array.remove(_arrayOfLines, _i)
+
+                true    // don't need a return value but this fixes a return type error
+            else
+                line.set_x2(_currentLine, line.get_x1(_currentLine) + fixedExtensionLength)
+
+                false    // don't need a return value but this fixes a return type error
+
 ////////////////////////////
 
-// Add lines with zero length initially
+// Add lines 
 if isStrongShavedOpenBullishCandle
-    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=low, x2=bar_index + lineExtensionLength, y2= low, style=line.style_solid, color=color.aqua)) 
+    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=low, x2=bar_index + lineExtensionLength, y2= low, style=line.style_solid, color=color.yellow)) 
 if isStrongShavedOpenBearishCandle
-    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=high, x2=bar_index + lineExtensionLength, y2= high, style=line.style_solid, color=color.aqua))
+    array.push(shavedOpenLines, line.new(x1 = bar_index, y1=high, x2=bar_index + lineExtensionLength, y2= high, style=line.style_solid, color=color.yellow))
 // Adjust line length of all lines
-adjustHorizontalLineEnd(shavedOpenLines)
+adjustHorizontalLineEnd(shavedOpenLines, stopShavedOpenAtCloseCross, lineExtensionLength)
 
-plotshape(isStrongShavedOpenBullishCandle and showShavedOpenCandles, style=shape.xcross, location=location.belowbar, color=color.aqua, size=size.tiny)
-plotshape(isStrongShavedOpenBearishCandle and showShavedOpenCandles, style=shape.xcross, location=location.abovebar, color=color.aqua, size=size.tiny)
+plotshape(isStrongShavedOpenBullishCandle and showShavedOpenCandles, style=shape.xcross, location=location.belowbar, color=color.yellow, size=size.tiny)
+plotshape(isStrongShavedOpenBearishCandle and showShavedOpenCandles, style=shape.xcross, location=location.abovebar, color=color.yellow, size=size.tiny)
 
 // Highwave
 highWaveColour = color.rgb(12, 216, 243, 50)
