@@ -20,6 +20,9 @@ firstCandleIndex = 2
 secondCandleIndex = 1
 lastCandleIndex = 0
 
+boxColour = color.new(color.lime, 60)
+boxLength = 20
+
 isOverLapPriorBar(int middleCandleIndex) =>
     // When middle candle is bullish or bearish, this assumes the candles either side continue in the same direction
     if middleCandleIndex >= 1
@@ -32,9 +35,12 @@ isOverLapPriorBar(int middleCandleIndex) =>
         isOverlapPrevNext = isBullishMiddleCandle ? low[nextCandleIndex] < high[previousCandleIndex] : high[nextCandleIndex] > low[previousCandleIndex]
 
         isTopBodyOverlapped = isBullishMiddleCandle ? close[middleCandleIndex] > low[nextCandleIndex] : open[middleCandleIndex] > low[previousCandleIndex]
+        isBottomBodyOverlapped = isBullishMiddleCandle ? open[middleCandleIndex] < high[previousCandleIndex] : close[middleCandleIndex] < high[nextCandleIndex]
 
-        if not isOverlapPrevNext and isTopBodyOverlapped
+        if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                box.new(bar_index - middleCandleIndex, low[middleCandleIndex], bar_index +5, low[nextCandleIndex], bgcolor=color.lime, border_color=color.lime)
+                box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxColour)
+            else
+                box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour)
 
 isOverLapPriorBar(1) 
