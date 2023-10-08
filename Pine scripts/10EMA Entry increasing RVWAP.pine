@@ -2,7 +2,7 @@
 // © glenrutherford4
 
 //@version=5
-strategy("10EMA Entry increasing RVWAP", overlay = true)
+strategy("10EMA Entry increasing RVWAP", overlay = true, max_lines_count = 500)
 
 import glenrutherford4/RollingVWAPLib/2 as rvwap
 
@@ -91,32 +91,41 @@ rMultiplier = input.float(2.0, "R Multiplier")
 checkBuy(isBuy) =>
     if isBuy and not isInTrade
         strategy.entry("Buy", strategy.long, posSize)
-        line.new(x1=bar_index, y1=open, x2=bar_index+closeAfterBarCount, y2=open, color= color.green)
+        line.new(x1=bar_index, y1=open, x2=bar_index+closeAfterBarCount, y2=open, color= color.blue)
         stopLossLevel = ta.lowest(low, stopLossLookback)
+        // stopLossLevel = math.min(ta.lowest(low, stopLossLookback), low - 0.00100)
+        takeProfitLevel = open + (open - stopLossLevel )* rMultiplier
 
         // strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel)
         strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
-        strategy.order("BuyTakeProfit", strategy.short, posSize, limit = open + (open - stopLossLevel )* rMultiplier, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+closeAfterBarCount, y2=stopLossLevel, color= color.red)
+        strategy.order("BuyTakeProfit", strategy.short, posSize, limit = takeProfitLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+closeAfterBarCount, y2=takeProfitLevel, color= color.green)
 
     strategy.opentrades.entry_bar_index(0)   // return
 
-checkSell(isSell) =>
+checkSell(isSell) => 
     if isSell and not isInTrade
         strategy.entry("Sell", strategy.short, posSize)
-        line.new(x1=bar_index, y1=high, x2=bar_index+closeAfterBarCount, y2=high, color= color.red)
+        line.new(x1=bar_index, y1=high, x2=bar_index+closeAfterBarCount, y2=high, color= color.blue)
         stopLossLevel = ta.highest(high, stopLossLookback)
+        takeProfitLevel = open - (open - stopLossLevel )* rMultiplier
 
-        strategy.order("SellStopLoss", strategy.long, posSize, stop = stopLossLevel)
+        // strategy.order("SellStopLoss", strategy.long, posSize, stop = stopLossLevel)
+        strategy.order("SellStopLoss", strategy.long, posSize, stop = stopLossLevel, oca_name = "SellClose", oca_type = strategy.oca.cancel)
+        line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+closeAfterBarCount, y2=stopLossLevel, color= color.red)
+        strategy.order("SellTakeProfit", strategy.long, posSize, limit = takeProfitLevel, oca_name = "SellClose", oca_type = strategy.oca.cancel)
+        line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+closeAfterBarCount, y2=takeProfitLevel, color= color.green)
 
     strategy.opentrades.entry_bar_index(0)   // return
 
 checkClose() =>
     if isLong and bar_index >= openTradeBarIndex + closeAfterBarCount
-        strategy.close("Buy", "Take Profit", posSize)
+        strategy.close("Buy", "Close time limit", posSize)
         strategy.cancel("BuyStopLoss")
 
     if isShort and bar_index >= openTradeBarIndex + closeAfterBarCount
-        strategy.close("Sell", "Take Profit", posSize)
+        strategy.close("Sell", "Close time limit", posSize)
         strategy.cancel("SellStopLoss")
         
 
