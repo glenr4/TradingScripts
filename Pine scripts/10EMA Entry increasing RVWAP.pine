@@ -1,0 +1,126 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+strategy("10EMA Entry increasing RVWAP", overlay = true)
+
+import glenrutherford4/RollingVWAPLib/2 as rvwap
+
+incCount = input.int(3, "Increasing count")
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+// Indiacators
+ema = ta.ema(close, 10)
+plot(ema, linewidth = 2, color = color.yellow)
+
+rvwap1Day = rvwap.days(1)
+plot(rvwap1Day, linewidth = 2, color = color.orange)
+
+//
+emaRvwapDiff = ema - rvwap1Day
+inc = emaRvwapDiff == ta.highest(emaRvwapDiff, incCount)
+dec = emaRvwapDiff == ta.lowest(emaRvwapDiff, incCount)
+
+// plot(emaRvwapDiff, linewidth = 2, color = color.green)
+
+// plotshape(inc, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+
+
+// Pivots
+leftBars = input(2)
+rightBars=input(2)
+entryLookbackBars=input(6)
+ph = ta.pivothigh(ema, leftBars, rightBars)
+plot(ph, style=plot.style_cross, linewidth=3, color= color.red, offset=-rightBars)
+
+pl = ta.pivotlow(ema, leftBars, rightBars)
+plot(pl, style=plot.style_cross, linewidth=3, color= color.green, offset=-rightBars)
+
+pivotLookback(pivot, rightBars, lookback) =>
+    returnValue = false
+
+    if lookback >= rightBars
+        for i=0 to lookback - rightBars
+            if(not na(pivot[i]))
+                returnValue := true
+                break
+    returnValue
+
+// Signals
+bullishSignal = isBearish(0) and close >= ema
+bearishSignal = isBullish(0) and close <= ema
+
+isBullishEntry = bullishSignal //and ema > rvwap1Day
+isBearishEntry = bearishSignal //and ema < rvwap1Day
+
+// plotshape(isBullishEntry, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
+// plotshape(isBearishEntry, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
+
+// Reduce frequency of alerts by proximity to pivots
+// alertcondition(isBullishEntry and pivotLookback(pl, rightBars, entryLookbackBars), "10EMA Bullish Entry", "10EMA bullish entry")
+// alertcondition(isBearishEntry and pivotLookback(ph, rightBars, entryLookbackBars), "10EMA Bearish Entry", "10EMA bearish entry")
+
+plotshape(isBullishEntry and inc, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearishEntry and dec, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+
+// Orders
+// realBuySignal = trendChanging and isUptrend and assistantOn
+// realSellSignal = trendChanging and isDowntrend and assistantOn
+
+// strategy.entry("Buy", strategy.long, 1, when=realBuySignal)
+// strategy.close("Buy", when=realSellSignal)
+
+
+// strategy.entry("Sell", strategy.short, 1, when=realSellSignal)
+// strategy.close("Sell", when=realBuySignal)
+
+isInTrade = strategy.position_size != 0
+isLong = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+var openTradeBarIndex = 1
+posSize = input.float(100000.0, "No. of contracts")
+stopLossLookback = input.int(5, "Stop loss lookback")
+closeAfterBarCount = input.int(10, "Close after bar count")
+
+checkBuy(isBuy) =>
+    if isBuy and not isInTrade
+        strategy.entry("Buy", strategy.long, posSize)
+        line.new(x1=bar_index, y1=open, x2=bar_index+closeAfterBarCount, y2=open, color= color.green)
+        stopLossLevel = ta.lowest(low, stopLossLookback)
+
+        strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel)
+
+    strategy.opentrades.entry_bar_index(0)   // return
+
+checkSell(isSell) =>
+    if isSell and not isInTrade
+        strategy.entry("Sell", strategy.short, posSize)
+        line.new(x1=bar_index, y1=high, x2=bar_index+closeAfterBarCount, y2=high, color= color.red)
+        stopLossLevel = ta.highest(high, stopLossLookback)
+
+        strategy.order("SellStopLoss", strategy.long, posSize, stop = stopLossLevel)
+
+    strategy.opentrades.entry_bar_index(0)   // return
+
+checkClose() =>
+    if isLong and bar_index >= openTradeBarIndex + closeAfterBarCount
+        strategy.close("Buy", "Take Profit", posSize)
+        strategy.cancel("BuyStopLoss")
+
+    if isShort and bar_index >= openTradeBarIndex + closeAfterBarCount
+        strategy.close("Sell", "Take Profit", posSize)
+        strategy.cancel("SellStopLoss")
+        
+
+openTradeBarIndex := checkBuy(isBullishEntry and inc)
+openTradeBarIndex := checkSell(isBearishEntry and dec)
+checkClose()
+
+// plot(bar_index, color=color.green)
+// plot(openTradeBarIndex, color=color.blue)
+// plot(openTradeBarIndex + closeAfterBarCount, color=color.red)
