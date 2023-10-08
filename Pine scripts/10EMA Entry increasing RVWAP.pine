@@ -86,6 +86,7 @@ var openTradeBarIndex = 1
 posSize = input.float(100000.0, "No. of contracts")
 stopLossLookback = input.int(5, "Stop loss lookback")
 closeAfterBarCount = input.int(10, "Close after bar count")
+rMultiplier = input.float(2.0, "R Multiplier")
 
 checkBuy(isBuy) =>
     if isBuy and not isInTrade
@@ -94,6 +95,8 @@ checkBuy(isBuy) =>
         stopLossLevel = ta.lowest(low, stopLossLookback)
 
         strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel)
+        // strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        // strategy.order("BuyTakeProfit", strategy.short, posSize, limit = open + (open - stopLossLevel )* rMultiplier, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
 
     strategy.opentrades.entry_bar_index(0)   // return
 
@@ -117,8 +120,10 @@ checkClose() =>
         strategy.cancel("SellStopLoss")
         
 
-openTradeBarIndex := checkBuy(isBullishEntry and inc)
-openTradeBarIndex := checkSell(isBearishEntry and dec)
+// openTradeBarIndex := checkBuy(isBullishEntry and inc)
+// openTradeBarIndex := checkSell(isBearishEntry and dec)
+openTradeBarIndex := checkSell(isBullishEntry and inc)
+openTradeBarIndex := checkBuy(isBearishEntry and dec)
 checkClose()
 
 // plot(bar_index, color=color.green)
