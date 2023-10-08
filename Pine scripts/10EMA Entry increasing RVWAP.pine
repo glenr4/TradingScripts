@@ -94,9 +94,9 @@ checkBuy(isBuy) =>
         line.new(x1=bar_index, y1=open, x2=bar_index+closeAfterBarCount, y2=open, color= color.green)
         stopLossLevel = ta.lowest(low, stopLossLookback)
 
-        strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel)
-        // strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
-        // strategy.order("BuyTakeProfit", strategy.short, posSize, limit = open + (open - stopLossLevel )* rMultiplier, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        // strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel)
+        strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        strategy.order("BuyTakeProfit", strategy.short, posSize, limit = open + (open - stopLossLevel )* rMultiplier, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
 
     strategy.opentrades.entry_bar_index(0)   // return
 
