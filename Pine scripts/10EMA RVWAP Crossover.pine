@@ -1,0 +1,87 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+strategy("10EMA RVWAP Crossover", overlay = true, max_lines_count = 500)
+
+import glenrutherford4/RollingVWAPLib/2 as rvwap
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+// Indiacators
+ema = ta.ema(close, 10)
+plot(ema, linewidth = 2, color = color.yellow)
+
+rvwap1Day = rvwap.days(1)
+plot(rvwap1Day, linewidth = 2, color = color.orange)
+
+// Orders
+isInTrade = strategy.position_size != 0
+isLong = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+var openTradeBarIndex = 1
+posSize = input.float(100000.0, "No. of contracts")
+stopLossLookback = input.int(5, "Stop loss lookback")
+closeAfterBarCount = input.int(10, "Close after bar count")
+rMultiplier = input.float(2.0, "R Multiplier")
+
+checkBuy(isBuy) =>
+    // Must calculate every tick to be correct
+    stopLossLevel = ta.lowest(low, stopLossLookback)
+    takeProfitLevel = open + math.abs(open - stopLossLevel )* rMultiplier
+    
+    if isBuy
+        if isShort
+            strategy.close("Sell", "Reversing to long", posSize, immediately = true)
+            strategy.cancel_all()   // Cancel OCA
+
+        strategy.entry("Buy", strategy.long, posSize)
+        line.new(x1=bar_index, y1=open, x2=bar_index+closeAfterBarCount, y2=open, color= color.blue)
+ 
+        // strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        // line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+closeAfterBarCount, y2=stopLossLevel, color= color.red)
+        // strategy.order("BuyTakeProfit", strategy.short, posSize, limit = takeProfitLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
+        // line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+closeAfterBarCount, y2=takeProfitLevel, color= color.green)
+        strategy.exit("BuyTrailingStop", "", posSize, trail_points = 0.0, trail_offset = stopLossLevel)
+
+checkSell(isSell) => 
+    // Must calculate every tick to be correct
+    stopLossLevel = ta.highest(high, stopLossLookback)
+    takeProfitLevel = open - math.abs(open - stopLossLevel )* rMultiplier
+
+    if isSell
+        if isLong
+            strategy.close("Buy", "Reversing to short", posSize, immediately = true)
+            strategy.cancel_all()   // Cancel OCA
+
+        strategy.entry("Sell", strategy.short, posSize)
+        line.new(x1=bar_index, y1=high, x2=bar_index+closeAfterBarCount, y2=high, color= color.blue)
+
+        strategy.order("SellStopLoss", strategy.long, posSize, stop = stopLossLevel, oca_name = "SellClose", oca_type = strategy.oca.cancel)
+        line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+closeAfterBarCount, y2=stopLossLevel, color= color.red)
+        strategy.order("SellTakeProfit", strategy.long, posSize, limit = takeProfitLevel, oca_name = "SellClose", oca_type = strategy.oca.cancel)
+        line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+closeAfterBarCount, y2=takeProfitLevel, color= color.green)
+
+// checkClose() =>
+//     if isLong and bar_index >= openTradeBarIndex + closeAfterBarCount
+//         strategy.close("Buy", "Close time limit", posSize)
+//         strategy.cancel("BuyStopLoss")
+
+//     if isShort and bar_index >= openTradeBarIndex + closeAfterBarCount
+//         strategy.close("Sell", "Close time limit", posSize)
+//         strategy.cancel("SellStopLoss")
+        
+// Signals
+isBullishEntry = ta.crossover(ema, rvwap1Day)
+isBearishEntry = ta.crossunder(ema, rvwap1Day)
+
+checkBuy(isBullishEntry)
+// checkSell(isBearishEntry)
+
+
+stopLossLevelTest = ta.lowest(low, stopLossLookback)
+plot(stopLossLevelTest, color=color.lime)
