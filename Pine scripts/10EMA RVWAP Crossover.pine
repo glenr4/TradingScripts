@@ -29,9 +29,14 @@ stopLossLookback = input.int(5, "Stop loss lookback")
 closeAfterBarCount = input.int(10, "Close after bar count")
 rMultiplier = input.float(2.0, "R Multiplier")
 
+stopLossLevelTest = ta.lowest(low, stopLossLookback)
+stopLossTicksTest = math.abs(open - stopLossLevelTest) * 100000
+plot(stopLossTicksTest, "stopLossTicksTest", color = color.yellow)
+
 checkBuy(isBuy) =>
     // Must calculate every tick to be correct
     stopLossLevel = ta.lowest(low, stopLossLookback)
+    stopLossTicks = math.abs(open - stopLossLevel) * 100000 // ticks not pips
     takeProfitLevel = open + math.abs(open - stopLossLevel )* rMultiplier
     
     if isBuy
@@ -43,10 +48,10 @@ checkBuy(isBuy) =>
         line.new(x1=bar_index, y1=open, x2=bar_index+closeAfterBarCount, y2=open, color= color.blue)
  
         // strategy.order("BuyStopLoss", strategy.short, posSize, stop = stopLossLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
-        // line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+closeAfterBarCount, y2=stopLossLevel, color= color.red)
         // strategy.order("BuyTakeProfit", strategy.short, posSize, limit = takeProfitLevel, oca_name = "BuyClose", oca_type = strategy.oca.cancel)
         // line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+closeAfterBarCount, y2=takeProfitLevel, color= color.green)
-        strategy.exit("BuyTrailingStop", "", posSize, trail_points = 0.0, trail_offset = stopLossLevel)
+        strategy.exit("BuyTrailingStop", "", posSize, trail_points = 100.0, trail_offset = stopLossTicks)
+        line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+closeAfterBarCount, y2=stopLossLevel, color= color.red)
 
 checkSell(isSell) => 
     // Must calculate every tick to be correct
@@ -83,5 +88,5 @@ checkBuy(isBullishEntry)
 // checkSell(isBearishEntry)
 
 
-stopLossLevelTest = ta.lowest(low, stopLossLookback)
-plot(stopLossLevelTest, color=color.lime)
+// stopLossLevelTest = ta.lowest(low, stopLossLookback)
+// plot(stopLossLevelTest, color=color.lime)
