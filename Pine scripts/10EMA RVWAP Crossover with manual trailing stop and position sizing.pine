@@ -1,0 +1,123 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+strategy("10EMA RVWAP Crossover with manual trailing stop and position sizing", overlay = true, max_lines_count = 500)
+
+import glenrutherford4/RollingVWAPLib/2 as rvwap
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+// Is new candle
+var previousBarIndex = 0
+isNewCandle = false
+if previousBarIndex != bar_index
+    isNewCandle := true
+    previousBarIndex := bar_index
+    // log.info("New candle")
+
+// Indiacators
+ema = ta.ema(close, 10)
+plot(ema, linewidth = 2, color = color.yellow)
+
+rvwap1Day = rvwap.days(1)
+plot(rvwap1Day, linewidth = 2, color = color.orange)
+
+// Orders
+isInTrade = strategy.position_size != 0
+isLong = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+var openTradeBarIndex = 1
+r = input.float(500, "Risk $")
+minStopLossTicks = input.float(100, "Minimum stop loss (ticks)")
+// posSize = input.float(100000.0, "No. of contracts")
+stopLossLookback = input.int(5, "Stop loss lookback")
+lineLength = input.int(10, "Close after bar count")
+rMultiplier = input.float(2.0, "R Multiplier")
+
+var longStopLossSize = 0.0
+var lastLongStopLossLevel = 0.0
+
+checkBuy(isBuy) =>
+    // Must calculate every tick to be correct
+    // stopLossLevel = low - 0.00100 // ta.lowest(low, stopLossLookback) - 0.00050
+
+    stopLossLevel = ta.lowest(low, stopLossLookback)
+    stopLossSize = math.abs(low - stopLossLevel)
+    log.info("calculated stopLossSize of: {0,number,#.#####}", stopLossSize)
+
+    minStopLossSize = minStopLossTicks / 100000
+
+    if stopLossSize < minStopLossSize
+        stopLossSize := minStopLossSize
+
+    stopLossTicks = stopLossSize * 100000 // ticks not pips
+    posSize = r / stopLossTicks * 100000
+    
+    if isBuy and not isLong
+        if isShort
+            strategy.close("Sell", "Reversing to long", posSize, immediately = true)
+            strategy.cancel_all()
+
+        strategy.entry("Long", strategy.long, posSize)
+        line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.blue)
+ 
+        strategy.order("LongTrailingStop", strategy.short, posSize, stop = stopLossLevel)
+        // strategy.exit("BuyTrailingStop", "", posSize, trail_points = 100.0, trail_offset = stopLossTicks)
+
+        line.new(x1=bar_index+1, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
+        log.info("*********************************")
+        // log.info("Opened new trade with LongTrailingStop of: {0,number,#.#####}", stopLossLevel)
+
+
+
+        log.info("stopLossLevel of: {0,number,#.#####}", stopLossLevel)
+        log.info("stopLossSize of: {0,number,#.#####}", stopLossSize)
+        log.info("stopLossTicks of: {0,number,#.#####}", stopLossTicks)
+        log.info("posSize of: {0,number,#.##}", posSize)
+        log.info("posSize of: {0,number,#.##}", posSize)
+
+
+        stopLossSize   // return
+    else
+        longStopLossSize
+
+// Assumes that only one trade is ever open at a time
+updateLongTrailingStop() => 
+    if strategy.opentrades.size(0) > 0
+        priceMovement = low - low[1]
+
+        newStopLossLevel = low - longStopLossSize
+
+        posSize = r / longStopLossSize
+        
+        if priceMovement > 0 and newStopLossLevel > lastLongStopLossLevel    // moved up from last bar
+            strategy.order("LongTrailingStop", strategy.short, posSize, stop = newStopLossLevel)
+            line.new(x1=bar_index, y1=newStopLossLevel, x2=bar_index+lineLength, y2=newStopLossLevel, color= color.red)
+            // log.info("Moved LongTrailingStop to: {0,number,#.#####}", newStopLossLevel)
+            // log.info("Moved LongTrailingStop with posSize of: {0,number,#.##}", posSize)
+            // log.info("Moved LongTrailingStop with longStopLossSize of: {0,number,#.##}", longStopLossSize)
+
+            log.info("new longStopLossSize of: {0,number,#.#####}", longStopLossSize)
+            log.info("new newStopLossLevel of: {0,number,#.#####}", newStopLossLevel)
+            log.info("new posSize of: {0,number,#.##}", posSize)
+
+    
+            newStopLossLevel
+        else 
+            lastLongStopLossLevel
+    else 
+        0.0
+
+if isNewCandle
+    lastLongStopLossLevel := updateLongTrailingStop()
+
+// Signals
+isBullishEntry = ta.crossover(ema, rvwap1Day)
+isBearishEntry = ta.crossunder(ema, rvwap1Day)
+
+longStopLossSize := checkBuy(isBullishEntry)
