@@ -1,0 +1,37 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+strategy("10+20 EMA Strategy", overlay=true, margin_long=10, margin_short=10)
+
+ema10 = ta.ema(close, 10)
+ema20 = ta.ema(close, 20)
+ema200 = ta.ema(close, 200)
+qty = 100000
+riskPoints = 0.00200 
+r2r = 2.0
+lineLength = 20
+crossoverWithinBars = 5
+ 
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+isInTrade = strategy.position_size != 0
+barsSinceBullishCrossover = ta.barssince(ta.crossover(ema10, ema20))
+longSignal = barsSinceBullishCrossover <= crossoverWithinBars and isBearish(0) and close > ema10 and close > ema200
+
+if (longSignal and not isInTrade)
+    takeProfitLevel = close + riskPoints * r2r
+    stopLossLevel = close - riskPoints
+    strategy.entry("Buy", strategy.long, qty)
+    strategy.order("Buy take profit", strategy.short, qty, limit =  takeProfitLevel,oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+    strategy.order("Buy stop loss", strategy.short, qty, stop =  stopLossLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+
+    line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.blue)
+    line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
+    line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
+
+
+
