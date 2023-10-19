@@ -7,13 +7,13 @@ indicator("Significant Candles", overlay = true, max_boxes_count = 500, max_line
 avgPeriods = input.int(100, "Average periods", group = "Common")
 lineExtensionLength = input.int(50, title="Line extension length", group= "Common")
 avgVolumeMultiplier = input.float(2.5, "Average volume multiplier", group = "Common", step = 0.1)
-showHighVolHighlight = input.bool(0, "Highlight high volume candles", group = "Common")
+showHighVolHighlight = input.bool(1, "Highlight high volume candles", group = "Common")
 
-showShavedOpenCandles = input.bool(1, "Show shaved open candles", group = "Shaved Open Candles")
+showShavedOpenCandles = input.bool(0, "Show shaved open candles", group = "Shaved Open Candles")
 avgRangeMultiplier = input.float(1.0, "Average range multiplier", group = "Shaved Open Candles", step = 0.1)
 shavedOpenWickTolerance = input.float(0.05, "Shaved open wick tolerance", group = "Shaved Open Candles", step = 0.01)
 shavedOpenOppositeWickTolerance = input.float(0.35, "Shaved open opposite wick tolerance", group = "Shaved Open Candles", step = 0.01)
-stopShavedOpenAtCloseCross = input.bool(1, "Stop line extension at close cross", group = "Shaved Open Candles")
+stopShavedOpenAtCloseCross = input.bool(0, "Stop line extension at close cross", group = "Shaved Open Candles")
 int i_maxLineLength = input.int(400, "Max line extension length", group = "Shaved Open Candles", minval = 2)
 
 highlightHighWaves = input.bool(0, title="Highlight High Waves", group= "High Wave")
@@ -86,9 +86,9 @@ adjustHorizontalLineEnd(_arrayOfLines, stopExtensionOnCloseCross, fixedExtension
 ////////////////////////////
 
 // Add lines 
-if isStrongShavedOpenBullishCandle
+if isStrongShavedOpenBullishCandle and showShavedOpenCandles
     array.push(shavedOpenLines, line.new(x1 = bar_index, y1=low, x2=bar_index + lineExtensionLength, y2= low, style=line.style_solid, color=color.yellow)) 
-if isStrongShavedOpenBearishCandle
+if isStrongShavedOpenBearishCandle and showShavedOpenCandles
     array.push(shavedOpenLines, line.new(x1 = bar_index, y1=high, x2=bar_index + lineExtensionLength, y2= high, style=line.style_solid, color=color.yellow))
 // Adjust line length of all lines
 adjustHorizontalLineEnd(shavedOpenLines, stopShavedOpenAtCloseCross, lineExtensionLength)
