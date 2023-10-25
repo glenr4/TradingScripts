@@ -16,8 +16,8 @@ isBearish(i) =>
 // Volume
 avgVolume = ta.sma(volume, avgPeriods) 
 volumeMultiple = volume / avgVolume
-plot(volumeMultiple, "Volume multiple", color = color.blue)
-hline(highVolumeMultiple, color = color.blue)
+plot(volumeMultiple, "Volume multiple", color = color.red)
+hline(highVolumeMultiple, color = color.red)
 
 isHighVolume = volumeMultiple >= highVolumeMultiple
 alertcondition(isHighVolume, "High Volume", "High volume")
@@ -26,10 +26,11 @@ alertcondition(isHighVolume, "High Volume", "High volume")
 bodySize = math.abs(close - open)
 avgBodySize = ta.sma(bodySize, avgPeriods)
 bodyMultiple = bodySize / avgBodySize
-plot(bodyMultiple, "Body multiple", color = color.red)
-hline(largeBodyMultiple, color = color.red)
+plot(bodyMultiple, "Body multiple", color = color.blue)
+hline(largeBodyMultiple, color = color.blue)
 
-alertcondition(bodyMultiple >= largeBodyMultiple, "Large Body", "Large body")
+isLargeBody = bodyMultiple >= largeBodyMultiple
+alertcondition(isLargeBody, "Large Body", "Large body")
 
 // High volume highlight
 barcolor(isHighVolume and isBullish(0) ? color.green : na)
