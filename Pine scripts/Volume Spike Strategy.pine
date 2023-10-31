@@ -42,16 +42,16 @@ isVolSpike = volume / avgVol >= avgVolumeThreshold
 plotshape(isVolSpike, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
 
 var lastVolSpikeBar = -1
-if isVolSpike
-    lastVolSpikeBar := bar_index
-    // line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.yellow)
+// if isVolSpike
+//     lastVolSpikeBar := bar_index
 
 barsSinceLastVolSpike = bar_index - lastVolSpikeBar
 lookForEntry = barsSinceLastVolSpike <= takeTradeWithinBarCount and barsSinceLastVolSpike != 0
-// plot(lookForEntry ? 1 : 0, "Look for Entry", color.red)
 
 isCloseInsideBar() =>
-    if lookForEntry and close <= high[barsSinceLastVolSpike] and close >= low[barsSinceLastVolSpike]
+    // Had this wrong initially, it was intended to be the body ie not include the wicks
+    // if lookForEntry and close <= high[barsSinceLastVolSpike] and close >= low[barsSinceLastVolSpike] //EURJPY testing was done with this line
+    if lookForEntry and ((isBullish(barsSinceLastVolSpike) and close <= close[barsSinceLastVolSpike] and close >= open[barsSinceLastVolSpike]) or (isBearish(barsSinceLastVolSpike) and close <= open[barsSinceLastVolSpike] and close >= close[barsSinceLastVolSpike]))
         true
     else
         false
@@ -68,11 +68,20 @@ isCloseBeyondLow() =>
     else
         false
 
-longSignal = lookForEntry and ((isBearish(0) and isCloseInsideBar()) or (isCloseBeyondHigh()))
-shortSignal = lookForEntry and ((isBullish(0) and isCloseInsideBar()) or (isCloseBeyondLow()))
+// Only update after comparing to last volume spike, 
+// otherwise the first volume spike in a series will not be checked for an entry
+if isVolSpike
+    lastVolSpikeBar := bar_index
+
+// longSignal = lookForEntry and ((isBearish(0) and isCloseInsideBar()) or (isCloseBeyondHigh()))
+// shortSignal = lookForEntry and ((isBullish(0) and isCloseInsideBar()) or (isCloseBeyondLow()))
 // It was my intention to look at the direction of the volume spike bar when a new bar closes inside but it wrecked the profit!
 // longSignal = lookForEntry and ((isBearish(barsSinceLastVolSpike) and isCloseInsideBar()) or (isCloseBeyondHigh()))
 // shortSignal = lookForEntry and ((isBullish(barsSinceLastVolSpike) and isCloseInsideBar()) or (isCloseBeyondLow()))
+
+
+longSignal = lookForEntry and isCloseBeyondHigh()
+shortSignal = lookForEntry and isCloseBeyondLow()
 
 // Bullish Trade
 if (longSignal and not isInTrade)
