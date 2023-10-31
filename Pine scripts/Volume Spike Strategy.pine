@@ -1,0 +1,104 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+strategy("Vol Spike", overlay=true, margin_long=10, margin_short=10, max_lines_count = 500)
+qty = input.float(100000, "Trade Size")
+riskPoints = input.float(0.01500, "Risk (points)")
+r2r = input.float(2.0, "Reward:Risk")
+avgRange = input.int(6, "Average Range")
+avgVolumeThreshold = input.float(1.5, "Spike: multiples of average volume")
+takeTradeWithinBarCount = input.int(3, "Take trade within bars")
+
+useDateFilter = input.bool(true, title="Filter Date Range of Backtest",
+     group="Backtest Time Period")
+backtestStartDate = input.time(timestamp("1 Jan 2022"), 
+     title="Start Date", group="Backtest Time Period",
+     tooltip="This start date is in the time zone of the exchange " + 
+     "where the chart's instrument trades. It doesn't use the time " + 
+     "zone of the chart or of your computer.")
+backtestEndDate = input.time( timestamp("31 Oct 2023"),
+     title="End Date", group="Backtest Time Period",
+     tooltip="This end date is in the time zone of the exchange " + 
+     "where the chart's instrument trades. It doesn't use the time " + 
+     "zone of the chart or of your computer.")
+
+lineLength = 20
+
+inTradeWindow = not useDateFilter or (time >= backtestStartDate and time < backtestEndDate)
+ 
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+ 
+isInTrade = strategy.position_size != 0
+isLong = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+// Volume Spike
+avgVol = ta.sma(volume, avgRange)
+isVolSpike = volume / avgVol >= avgVolumeThreshold
+plotshape(isVolSpike, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+
+var lastVolSpikeBar = -1
+if isVolSpike
+    lastVolSpikeBar := bar_index
+    // line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.yellow)
+
+lookForEntry = bar_index - lastVolSpikeBar <= takeTradeWithinBarCount and bar_index - lastVolSpikeBar != 0
+// plot(lookForEntry ? 1 : 0, "Look for Entry", color.red)
+
+isCloseInsideBar() =>
+    if lookForEntry and close <= high[bar_index-lastVolSpikeBar] and close >= low[bar_index-lastVolSpikeBar]
+        true
+    else
+        false
+
+isCloseBeyondHigh() =>
+    if lookForEntry and close > high[bar_index-lastVolSpikeBar]
+        true
+    else
+        false
+
+isCloseBeyondLow() =>
+    if lookForEntry and close < low[bar_index-lastVolSpikeBar]
+        true
+    else
+        false
+
+longSignal = lookForEntry and ((isBearish(0) and isCloseInsideBar()) or (isCloseBeyondHigh()))
+shortSignal = lookForEntry and ((isBullish(0) and isCloseInsideBar()) or (isCloseBeyondLow()))
+
+// Bullish Trade
+if (longSignal and not isLong)
+    if isShort
+        strategy.cancel_all()
+        strategy.close("Sell")
+
+    takeProfitLevel = close + riskPoints * r2r
+    stopLossLevel = close - riskPoints
+    strategy.entry("Buy", strategy.long, qty)
+    strategy.order("Buy take profit", strategy.short, qty, limit =  takeProfitLevel,oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+    strategy.order("Buy stop loss", strategy.short, qty, stop =  stopLossLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+
+    line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.blue)
+    line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
+    line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
+
+// Bearish Trade
+// if (shortSignal and not isShort)
+//     if isLong
+//         strategy.cancel_all()
+//         strategy.close("Buy")
+
+//     takeProfitLevel = close - riskPoints * r2r
+//     stopLossLevel = close + riskPoints
+//     strategy.entry("Sell", strategy.short, qty)
+//     strategy.order("Sell take profit", strategy.long, qty, limit =  takeProfitLevel,oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
+//     strategy.order("Sell stop loss", strategy.long, qty, stop =  stopLossLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
+
+//     line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.blue)
+//     line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
+//     line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
+
