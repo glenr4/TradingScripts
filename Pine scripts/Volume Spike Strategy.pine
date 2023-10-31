@@ -46,29 +46,33 @@ if isVolSpike
     lastVolSpikeBar := bar_index
     // line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.yellow)
 
-lookForEntry = bar_index - lastVolSpikeBar <= takeTradeWithinBarCount and bar_index - lastVolSpikeBar != 0
+barsSinceLastVolSpike = bar_index - lastVolSpikeBar
+lookForEntry = barsSinceLastVolSpike <= takeTradeWithinBarCount and barsSinceLastVolSpike != 0
 // plot(lookForEntry ? 1 : 0, "Look for Entry", color.red)
 
 isCloseInsideBar() =>
-    if lookForEntry and close <= high[bar_index-lastVolSpikeBar] and close >= low[bar_index-lastVolSpikeBar]
+    if lookForEntry and close <= high[barsSinceLastVolSpike] and close >= low[barsSinceLastVolSpike]
         true
     else
         false
 
 isCloseBeyondHigh() =>
-    if lookForEntry and close > high[bar_index-lastVolSpikeBar]
+    if lookForEntry and close > high[barsSinceLastVolSpike]
         true
     else
         false
 
 isCloseBeyondLow() =>
-    if lookForEntry and close < low[bar_index-lastVolSpikeBar]
+    if lookForEntry and close < low[barsSinceLastVolSpike]
         true
     else
         false
 
 longSignal = lookForEntry and ((isBearish(0) and isCloseInsideBar()) or (isCloseBeyondHigh()))
 shortSignal = lookForEntry and ((isBullish(0) and isCloseInsideBar()) or (isCloseBeyondLow()))
+// It was my intention to look at the direction of the volume spike bar when a new bar closes inside but it wrecked the profit!
+// longSignal = lookForEntry and ((isBearish(barsSinceLastVolSpike) and isCloseInsideBar()) or (isCloseBeyondHigh()))
+// shortSignal = lookForEntry and ((isBullish(barsSinceLastVolSpike) and isCloseInsideBar()) or (isCloseBeyondLow()))
 
 // Bullish Trade
 if (longSignal and not isInTrade)
