@@ -73,15 +73,15 @@ isCloseBeyondLow() =>
 if isVolSpike
     lastVolSpikeBar := bar_index
 
-longSignal = lookForEntry and ((isBullish(0) and isCloseInsideBar()) or (isCloseBeyondHigh()))
-shortSignal = lookForEntry and ((isBearish(0) and isCloseInsideBar()) or (isCloseBeyondLow()))
+longSignal = false  // lookForEntry and ((isBullish(0) and isCloseInsideBar()) or (isCloseBeyondHigh()))
+// shortSignal = lookForEntry and ((isBearish(0) and isCloseInsideBar()) or (isCloseBeyondLow()))
 // It was my intention to look at the direction of the volume spike bar when a new bar closes inside but it wrecked the profit!
 // longSignal = lookForEntry and ((isBearish(barsSinceLastVolSpike) and isCloseInsideBar()) or (isCloseBeyondHigh()))
 // shortSignal = lookForEntry and ((isBullish(barsSinceLastVolSpike) and isCloseInsideBar()) or (isCloseBeyondLow()))
 
 // Working OK just with this
 // longSignal = lookForEntry and isCloseBeyondHigh()
-// shortSignal = lookForEntry and isCloseBeyondLow()
+shortSignal = lookForEntry and isCloseBeyondLow()
 
 // Bullish Trade
 if (longSignal and not isInTrade)
