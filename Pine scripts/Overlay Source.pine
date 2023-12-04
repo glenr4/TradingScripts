@@ -1,0 +1,10 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+// https://stackoverflow.com/a/59969441
+// Lets you select the output from another indicator to use as the input to this indicator
+
+//@version=4
+study("Overlay Source", overlay = true)
+
+src = input(defval=close, "Main plot", type=input.source)
+plot(src)
