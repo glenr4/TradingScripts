@@ -1,0 +1,20 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Surge", overlay = false)
+
+
+lookback = input.int(5, "Candle lookback")
+limit = input.float(1, "Surge limit")
+
+priceDiff = close[0] - close[lookback]
+isBullish = priceDiff >= 0
+
+barColour = isBullish ? color.green : color.red
+
+plotPriceDiff = math.abs(priceDiff)
+plot(plotPriceDiff, linewidth = 2, color = barColour, style = plot.style_histogram)
+
+
+
