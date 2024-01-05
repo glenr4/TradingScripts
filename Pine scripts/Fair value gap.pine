@@ -4,6 +4,10 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500)
 
+boxLength = input.int(10, "Box Length")
+boxColour = input.color(color.new(#f6fa03, 85), "Box Colour")
+boxLineColour = input.color(color.new(#f6fa03, 0), "Box Outline Colour")
+
 isBullish(i) =>
     close[i] > open[i]
 isBearish(i) => 
@@ -20,8 +24,8 @@ firstCandleIndex = 2
 secondCandleIndex = 1
 lastCandleIndex = 0
 
-boxColour = color.new(color.lime, 60)
-boxLength = 20
+
+
 
 isOverLapPriorBar(int middleCandleIndex) =>
     // When middle candle is bullish or bearish, this assumes the candles either side continue in the same direction
@@ -32,15 +36,15 @@ isOverLapPriorBar(int middleCandleIndex) =>
         isBullishMiddleCandle = isBullish(middleCandleIndex)
 
         // If there is overlap of previous and next candles then there is no gap to highlight
-        isOverlapPrevNext = isBullishMiddleCandle ? low[nextCandleIndex] < high[previousCandleIndex] : high[nextCandleIndex] > low[previousCandleIndex]
+        isOverlapPrevNext = isBullishMiddleCandle ? low[nextCandleIndex] <= high[previousCandleIndex] : high[nextCandleIndex] >= low[previousCandleIndex]
 
-        isTopBodyOverlapped = isBullishMiddleCandle ? close[middleCandleIndex] > low[nextCandleIndex] : open[middleCandleIndex] > low[previousCandleIndex]
-        isBottomBodyOverlapped = isBullishMiddleCandle ? open[middleCandleIndex] < high[previousCandleIndex] : close[middleCandleIndex] < high[nextCandleIndex]
+        isTopBodyOverlapped = isBullishMiddleCandle ? close[middleCandleIndex] >= low[nextCandleIndex] : open[middleCandleIndex] >= low[previousCandleIndex]
+        isBottomBodyOverlapped = isBullishMiddleCandle ? open[middleCandleIndex] <= high[previousCandleIndex] : close[middleCandleIndex] <= high[nextCandleIndex]
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxColour)
+                box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1)
             else
-                box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour)
+                box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1)
 
 isOverLapPriorBar(1) 
