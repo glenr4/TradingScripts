@@ -4,9 +4,9 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500)
 
-boxLength = input.int(10, "Box Length")
+boxLength = input.int(5, "Box Length")
 boxColour = input.color(color.new(#f6fa03, 85), "Box Colour")
-boxLineColour = input.color(color.new(#f6fa03, 0), "Box Outline Colour")
+boxLineColour = input.color(color.new(#f6fa03, 55), "Box Outline Colour")
 
 isBullish(i) =>
     close[i] > open[i]
