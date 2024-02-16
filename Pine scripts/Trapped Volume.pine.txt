@@ -1,0 +1,30 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Trapped Volume")
+
+lookBackBars = input.int(10, "Lookback Bars")
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+// Bearish volume
+trappedBearishVol = 0.0
+
+for i = 1 to lookBackBars
+    if(isBearish(i) and close > high[i])
+        trappedBearishVol += volume[i]
+
+plot(trappedBearishVol, color = color.green, style = plot.style_histogram, linewidth = 3, title = "Trapped Bearish Volume")
+
+// Bullish volume
+trappedBullishVol = 0.0
+
+for i = 1 to lookBackBars
+    if(isBullish(i) and close < low[i])
+        trappedBullishVol += volume[i]
+
+plot(trappedBullishVol, color = color.red, style = plot.style_histogram, linewidth = 3, title = "Trapped Bullish Volume")
