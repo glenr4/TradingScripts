@@ -4,11 +4,12 @@
 //@version=5
 indicator("Time Based Levels", overlay = true)
 
-extendDailyHighLowLength = input.int(48, "Number bars to extend daily high and low")
+extendDailyHighLowDays = input.int(2, "Number of days to extend daily high and low")
 dailyHighColour = input.color(color.aqua, "Daily high colour")
 dailyLowColour = input.color(color.blue, "Daily low colour")
 
 barCountPerDay = 24*60*60/timeframe.in_seconds()
+extendDailyHighLowLength = extendDailyHighLowDays * barCountPerDay
 
 [dailyHigh, dailyLow] = request.security("","1D", [high, low])
 
