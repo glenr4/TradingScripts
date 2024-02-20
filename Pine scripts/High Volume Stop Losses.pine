@@ -7,8 +7,8 @@ indicator("High Volume Stop Losses", overlay = true, max_lines_count = 500)
 avgPeriods = input.int(100, title="Average periods", minval = 0)
 highVolumeMultiple = input.float(3.0, title="High volume threshold (multiples)", minval = 0, step = 0.1)
 lineExtensionLength = input.int(100, "Line extension length")
-highBullishVolumeColour = input.color(color.red, "High bullish volume colour")
-highBearishVolumeColour = input.color(color.green, "High bearish volume colour")
+highBullishVolumeColour = input.color(color.green, "High bullish volume colour")
+highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
 
 isBullish(offset) =>
     close[offset] > open[offset]
