@@ -3,16 +3,22 @@
 
 //@version=5
 indicator("High Volume Stop Losses", overlay = true, max_lines_count = 500)
+import TradingView/ta/7
 
 avgPeriods = input.int(100, title="Average periods", minval = 0)
 lineExtensionLength = input.int(100, "Line extension length")
 highBullishVolumeColour = input.color(color.green, "High bullish volume colour")
 highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
+useLookback = input.bool(true, "Use lookback for minutes timeframe")
 
 highVolumeMultiple5m = input.float(3.6, title="5m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 highVolumeMultiple15m = input.float(3.0, title="15m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 highVolumeMultiple1h = input.float(2.5, title="1h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 highVolumeMultiple4h = input.float(2.0, title="4h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
+
+highVolumeLookback5m = input.int(20, title="5m", group = "High volume lookback bars", minval = 1)
+highVolumeLookback15m = input.int(20, title="15m", group = "High volume lookback bars", minval = 1)
+
 
 isBullish(offset) =>
     close[offset] > open[offset]
@@ -23,6 +29,7 @@ avgVolume = ta.sma(volume, avgPeriods)
 volumeMultiple = volume / avgVolume
 
 timeframeMinutes = timeframe.in_seconds()/60
+isTimeframeHours = timeframeMinutes >= 60
 
 highVolumeMultiple = switch timeframeMinutes
     5 => highVolumeMultiple5m
@@ -31,7 +38,16 @@ highVolumeMultiple = switch timeframeMinutes
     240 => highVolumeMultiple4h
     => 3.0
 
-isHighVolume = volumeMultiple >= highVolumeMultiple
+highVolumeLookback = switch timeframeMinutes
+    5 => highVolumeLookback5m
+    15 => highVolumeLookback15m
+    => 20
+
+isHighVolume = false
+if(isTimeframeHours or not useLookback)
+    isHighVolume := volumeMultiple >= highVolumeMultiple
+else
+    isHighVolume := volume >= ta.highest(volume, highVolumeLookback)
 
 if(isBullish(0) and isHighVolume)
     line.new(x1=bar_index, y1=low, x2=bar_index+lineExtensionLength, y2=low, color= highBullishVolumeColour, style = line.style_dashed, width = 2)
