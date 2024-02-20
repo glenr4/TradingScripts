@@ -2,16 +2,11 @@
 // © glenrutherford4
 
 //@version=5
+// Draws a line at the daily high and low until it is closed beyond
 indicator("Time Based Levels", overlay = true, max_lines_count = 500)
 
-extendDailyHighLowDays = input.int(2, "Number of days to extend daily high and low")
 dailyHighColour = input.color(color.aqua, "Daily high colour")
 dailyLowColour = input.color(color.blue, "Daily low colour")
-
-barCountPerDay = 24*60*60/timeframe.in_seconds()
-extendDailyHighLowLength = extendDailyHighLowDays * barCountPerDay
-if(extendDailyHighLowLength > 500)
-    extendDailyHighLowLength := 500 // TradingView limit of drawing into the future
 
 startingBar = bar_index
 
@@ -48,10 +43,10 @@ adjustHorizontalLineEnd(_arrayOfLines, stopExtensionOnCloseCross, fixedExtension
 
 // Add lines 
 if(ta.change(dailyHigh) and not barstate.islast) // does not draw for the current bar until it is closed ie not last
-    array.push(dailyHighLowLines, line.new(x1=startingBar, y1=dailyHigh, x2=bar_index+extendDailyHighLowLength, y2=dailyHigh, color= dailyHighColour))
+    array.push(dailyHighLowLines, line.new(x1=startingBar, y1=dailyHigh, x2=bar_index+1, y2=dailyHigh, color= dailyHighColour, style = line.style_arrow_left))
 
 if(ta.change(dailyLow) and not barstate.islast) // does not draw for the current bar until it is closed ie not last
-    array.push(dailyHighLowLines, line.new(x1=startingBar, y1=dailyLow, x2=bar_index+extendDailyHighLowLength, y2=dailyLow, color= dailyLowColour))
+    array.push(dailyHighLowLines, line.new(x1=startingBar, y1=dailyLow, x2=bar_index+1, y2=dailyLow, color= dailyLowColour, style = line.style_arrow_left))
 
 // Adjust line length of all lines
-adjustHorizontalLineEnd(dailyHighLowLines, true, extendDailyHighLowLength)
+adjustHorizontalLineEnd(dailyHighLowLines, true, 0)

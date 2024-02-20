@@ -6,7 +6,9 @@ indicator("Volume and Body Multiples")
 
 avgPeriods = input.int(100, title="Average Periods", group= "Technical", minval = 0)
 highVolumeMultiple = input.float(3.0, title="High Volume Threshold", group= "Technical", minval = 0, step = 0.1)
+showHighVolume = input.bool(true, "Show high volume")
 largeBodyMultiple = input.float(4.5, title="Large Body Threshold", group= "Technical", minval = 0, step = 0.1)
+showLargeBody = input.bool(false, "Show large body")
 
 isBullish(offset) =>
     close[offset] > open[offset]
@@ -16,8 +18,10 @@ isBearish(i) =>
 // Volume
 avgVolume = ta.sma(volume, avgPeriods) 
 volumeMultiple = volume / avgVolume
-plot(volumeMultiple, "Volume multiple", color = color.red)
-hline(highVolumeMultiple, color = color.red)
+
+displayVolume = showHighVolume ? display.all : display.none
+plot(volumeMultiple, "Volume multiple", color = color.red, display = displayVolume)
+hline(highVolumeMultiple, color = color.red, display = displayVolume)
 
 isHighVolume = volumeMultiple >= highVolumeMultiple
 alertcondition(isHighVolume, "High Volume", "High volume")
@@ -26,8 +30,10 @@ alertcondition(isHighVolume, "High Volume", "High volume")
 bodySize = math.abs(close - open)
 avgBodySize = ta.sma(bodySize, avgPeriods)
 bodyMultiple = bodySize / avgBodySize
-plot(bodyMultiple, "Body multiple", color = color.blue)
-hline(largeBodyMultiple, color = color.blue)
+
+displayBody = showLargeBody ? display.all : display.none
+plot(bodyMultiple, "Body multiple", color = color.blue, display = displayBody)
+hline(largeBodyMultiple, color = color.blue, display = displayBody)
 
 isLargeBody = bodyMultiple >= largeBodyMultiple
 alertcondition(isLargeBody, "Large Body", "Large body")
