@@ -5,10 +5,14 @@
 indicator("High Volume Stop Losses", overlay = true, max_lines_count = 500)
 
 avgPeriods = input.int(100, title="Average periods", minval = 0)
-highVolumeMultiple = input.float(3.0, title="High volume threshold (multiples)", minval = 0, step = 0.1)
 lineExtensionLength = input.int(100, "Line extension length")
 highBullishVolumeColour = input.color(color.green, "High bullish volume colour")
 highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
+
+highVolumeMultiple5m = input.float(3.6, title="5m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
+highVolumeMultiple15m = input.float(3.0, title="15m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
+highVolumeMultiple1h = input.float(2.5, title="1h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
+highVolumeMultiple4h = input.float(2.0, title="4h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 
 isBullish(offset) =>
     close[offset] > open[offset]
@@ -17,6 +21,15 @@ isBearish(i) =>
 
 avgVolume = ta.sma(volume, avgPeriods) 
 volumeMultiple = volume / avgVolume
+
+timeframeMinutes = timeframe.in_seconds()/60
+
+highVolumeMultiple = switch timeframeMinutes
+    5 => highVolumeMultiple5m
+    15 => highVolumeMultiple15m
+    60 => highVolumeMultiple1h
+    240 => highVolumeMultiple4h
+    => 3.0
 
 isHighVolume = volumeMultiple >= highVolumeMultiple
 
