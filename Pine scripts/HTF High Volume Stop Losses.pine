@@ -1,0 +1,32 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("HTF High Volume Stop Losses", overlay = true, max_lines_count = 500)
+
+avgPeriods = input.int(100, title="Average periods", minval = 0)
+highVolumeMultiple = input.float(3, "High volume multiple")
+lineExtensionLength = input.int(100, "Line extension length")
+highBullishVolumeColour = input.color(color.green, "High bullish volume colour")
+highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
+
+htfMinutes = 240
+
+[htfOpen, htfHigh, htfLow, htfClose, htfVolume] = request.security("",str.tostring(htfMinutes), [open, high, low, close, volume], lookahead = barmerge.lookahead_off)
+
+isBullish = htfClose >= htfOpen
+
+avgVolume = ta.sma(htfVolume, avgPeriods) 
+volumeMultiple = htfVolume / avgVolume
+
+timeframeMinutes = timeframe.in_seconds()/60
+scalingFactor = htfMinutes / timeframeMinutes
+lineExtension = lineExtensionLength*scalingFactor <= 500 ? lineExtensionLength*scalingFactor : 500
+
+isHighVolume = volumeMultiple >= highVolumeMultiple
+
+if(isBullish and isHighVolume)
+    line.new(x1=bar_index, y1=htfLow, x2=bar_index + lineExtension, y2=htfLow, color= highBullishVolumeColour, style = line.style_dashed, width = 2)
+
+if(not isBullish and isHighVolume)
+    line.new(x1=bar_index, y1=htfHigh, x2=bar_index + lineExtension, y2=htfHigh, color= highBearishVolumeColour, style = line.style_dashed, width = 2)
