@@ -6,19 +6,21 @@ indicator("High Volume Stop Losses", overlay = true, max_lines_count = 500)
 import TradingView/ta/7
 
 avgPeriods = input.int(100, title="Average periods", minval = 0)
-lineExtensionLength = input.int(100, "Line extension length")
+lineExtensionLength = input.int(300, "Line extension length")
 highBullishVolumeColour = input.color(color.green, "High bullish volume colour")
 highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
-useLookback = input.bool(true, "Use lookback for minutes timeframe")
+useLookbackMinutes = input.bool(true, "Use lookback for minutes timeframe")
+useLookbackHours = input.bool(true, "Use lookback for hours timeframe")
+
+highVolumeLookback5m = input.int(100, title="5m", group = "High volume lookback bars", minval = 1)
+highVolumeLookback15m = input.int(100, title="15m", group = "High volume lookback bars", minval = 1)
+highVolumeLookback1h = input.int(50, title="1h", group = "High volume lookback bars", minval = 1)
+highVolumeLookback4h = input.int(18, title="4h", group = "High volume lookback bars", minval = 1)
 
 highVolumeMultiple5m = input.float(3.6, title="5m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 highVolumeMultiple15m = input.float(3.0, title="15m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 highVolumeMultiple1h = input.float(2.5, title="1h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
 highVolumeMultiple4h = input.float(2.0, title="4h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
-
-highVolumeLookback5m = input.int(20, title="5m", group = "High volume lookback bars", minval = 1)
-highVolumeLookback15m = input.int(20, title="15m", group = "High volume lookback bars", minval = 1)
-
 
 isBullish(offset) =>
     close[offset] > open[offset]
@@ -41,10 +43,12 @@ highVolumeMultiple = switch timeframeMinutes
 highVolumeLookback = switch timeframeMinutes
     5 => highVolumeLookback5m
     15 => highVolumeLookback15m
-    => 20
+    60 => highVolumeLookback1h
+    240 => highVolumeLookback4h
+    => 5
 
 isHighVolume = false
-if(isTimeframeHours or not useLookback)
+if((isTimeframeHours and not useLookbackHours) or not useLookbackMinutes)
     isHighVolume := volumeMultiple >= highVolumeMultiple
 else
     isHighVolume := volume >= ta.highest(volume, highVolumeLookback)
