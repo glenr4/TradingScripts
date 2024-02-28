@@ -12,6 +12,7 @@ highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
 useLookbackMinutes = input.bool(true, "Use lookback for minutes timeframe")
 useLookbackHours = input.bool(true, "Use lookback for hours timeframe")
 
+highVolumeLookback2m = input.int(330, title="2m", group = "High volume lookback bars", minval = 1)
 highVolumeLookback5m = input.int(100, title="5m", group = "High volume lookback bars", minval = 1)
 highVolumeLookback15m = input.int(100, title="15m", group = "High volume lookback bars", minval = 1)
 highVolumeLookback1h = input.int(50, title="1h", group = "High volume lookback bars", minval = 1)
@@ -41,6 +42,7 @@ highVolumeMultiple = switch timeframeMinutes
     => 3.0
 
 highVolumeLookback = switch timeframeMinutes
+    2 => highVolumeLookback2m
     5 => highVolumeLookback5m
     15 => highVolumeLookback15m
     60 => highVolumeLookback1h
