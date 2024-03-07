@@ -54,21 +54,20 @@ fvgSize = isOverLapPriorBar(1)
 
 // Pivots
 isPivotHigh = ta.pivothigh(2,2)
-plot(isPivotHigh)
+// plot(isPivotHigh)
 
 isPivotLow = ta.pivotlow(2,2)
-plot(isPivotLow)
+// plot(isPivotLow)
 
 // Large FVG
 // Note: pivot actually happend 'rightbars' ago ie 2 bars
 isLargeFVG = fvgSize >= largeFVG
-plotshape(isLargeFVG, style=shape.circle, location=location.abovebar, color=color.blue, size=size.tiny)
 
-isPivotHighFVG = isLargeFVG and (isPivotHigh or isPivotHigh[1])
-plotshape(isPivotHighFVG, style=shape.circle, location=location.abovebar, color=color.red, size=size.small)
+isPivotHighFVG = isLargeFVG and (isPivotHigh or isPivotHigh[1]) and isBearish(1)
+plotshape(isPivotHighFVG, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
 
-isPivotLowFVG = isLargeFVG and (isPivotLow or isPivotLow[1])
-plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=color.red, size=size.small)
+isPivotLowFVG = isLargeFVG and (isPivotLow or isPivotLow[1]) and isBullish(1)
+plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=color.red, size=size.tiny)
 
 // Alerts
 alertcondition(isPivotHighFVG or isPivotLowFVG, "FVG near pivot", "FVG near pivot")
