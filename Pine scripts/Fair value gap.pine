@@ -4,9 +4,11 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500)
 
-boxLength = input.int(5, "Box Length")
-boxColour = input.color(color.new(#f6fa03, 85), "Box Colour")
-boxLineColour = input.color(color.new(#f6fa03, 55), "Box Outline Colour")
+boxLength = input.int(3, "Box Length")
+boxColour = input.color(color.new(#f6fa03, 60), "Box Colour")
+boxLineColour = input.color(color.new(#f6fa03, 60), "Box Outline Colour")
+
+largeFVG = input.float(0.00010, "Large FVG", step = 0.00001)
 
 isBullish(i) =>
     close[i] > open[i]
@@ -24,10 +26,8 @@ firstCandleIndex = 2
 secondCandleIndex = 1
 lastCandleIndex = 0
 
-
-
-
 isOverLapPriorBar(int middleCandleIndex) =>
+    fvgSize = 0.0
     // When middle candle is bullish or bearish, this assumes the candles either side continue in the same direction
     if middleCandleIndex >= 1
         previousCandleIndex = middleCandleIndex + 1
@@ -44,7 +44,31 @@ isOverLapPriorBar(int middleCandleIndex) =>
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
                 box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1)
+                fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
                 box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1)
+                fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
+    fvgSize // return value
 
-isOverLapPriorBar(1) 
+fvgSize = isOverLapPriorBar(1) 
+
+// Pivots
+isPivotHigh = ta.pivothigh(2,2)
+plot(isPivotHigh)
+
+isPivotLow = ta.pivotlow(2,2)
+plot(isPivotLow)
+
+// Large FVG
+// Note: pivot actually happend 'rightbars' ago ie 2 bars
+isLargeFVG = fvgSize >= largeFVG
+plotshape(isLargeFVG, style=shape.circle, location=location.abovebar, color=color.blue, size=size.tiny)
+
+isPivotHighFVG = isLargeFVG and (isPivotHigh or isPivotHigh[1])
+plotshape(isPivotHighFVG, style=shape.circle, location=location.abovebar, color=color.red, size=size.small)
+
+isPivotLowFVG = isLargeFVG and (isPivotLow or isPivotLow[1])
+plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=color.red, size=size.small)
+
+// Alerts
+alertcondition(isPivotHighFVG or isPivotLowFVG, "FVG near pivot", "FVG near pivot")
