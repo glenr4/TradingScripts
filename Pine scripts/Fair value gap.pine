@@ -4,11 +4,18 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500)
 
+fixedBoxLength = input.bool(true, "Fixed Box Length")
 boxLength = input.int(3, "Box Length")
 boxColour = input.color(color.new(#f6fa03, 60), "Box Colour")
 boxLineColour = input.color(color.new(#f6fa03, 60), "Box Outline Colour")
 
 largeFVG = input.float(0.00010, "Large FVG", step = 0.00001)
+
+type fvg
+    box   fvgBox
+    float limit
+
+var fvg[] fvgs = array.new<fvg>(0)
 
 isBullish(i) =>
     close[i] > open[i]
@@ -43,10 +50,10 @@ isOverLapPriorBar(int middleCandleIndex) =>
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1)
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), high[previousCandleIndex]))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
-                box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1)
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), low[previousCandleIndex]))
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
     fvgSize // return value
 
@@ -78,8 +85,6 @@ plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=c
 // Alerts
 alertcondition(isPivotHighFVG or isPivotLowFVG, "FVG near pivot", "FVG near pivot")
 
-
-
 // Highlights
 var isInPivotHighFVG = false
 var isInPivotLowFVG = false
@@ -88,30 +93,61 @@ if(isPivotHighFVG)
     isInPivotHighFVG := true
 if(isInPivotHighFVG and isPivotLow)
     isInPivotHighFVG := false
-    label.new(lastPivotHighIndex - pivotBarsLength, lastPivotHigh, 
-                  text = str.tostring(lastPivotHigh - pivotLow),
-                  color = color.new(color.gray, 80), 
-                  textcolor = color.red,
-                  style = label.style_label_down,
-                  textalign = text.align_right)
+    // TODO: the calculation isn't accurate yet
+    // label.new(lastPivotHighIndex - pivotBarsLength, lastPivotHigh, 
+    //               text = str.tostring(lastPivotHigh - pivotLow),
+    //               color = color.new(color.gray, 80), 
+    //               textcolor = color.red,
+    //               style = label.style_label_down,
+    //               textalign = text.align_right)
 
 if(isPivotLowFVG)
     isInPivotLowFVG := true
 if(isInPivotLowFVG and isPivotHigh)
     isInPivotLowFVG := false
-    label.new(lastPivotLowIndex - pivotBarsLength, lastPivotLow, text = str.tostring(pivotHigh - lastPivotLow), color = color.new(color.gray, 80), textcolor = color.green, style = label.style_label_up, textalign = text.align_right)
+    // label.new(lastPivotLowIndex - pivotBarsLength, lastPivotLow, text = str.tostring(pivotHigh - lastPivotLow), color = color.new(color.gray, 80), textcolor = color.green, style = label.style_label_up, textalign = text.align_right)
 
-
-bgcolor(isInPivotHighFVG ? color.new(color.red, 80) : na)
-bgcolor(isInPivotLowFVG ? color.new(color.green, 80) : na)
+// bgcolor(isInPivotHighFVG ? color.new(color.red, 80) : na)
+// bgcolor(isInPivotLowFVG ? color.new(color.green, 80) : na)
 
 // Save last pivot
 if(isPivotHigh)
     lastPivotHigh := pivotHigh
     lastPivotHighIndex := bar_index
-plot(lastPivotHigh, color = color.red, offset = -pivotBarsLength)
+// plot(lastPivotHigh, color = color.red, offset = -pivotBarsLength)
 
 if(isPivotLow)
     lastPivotLow := pivotLow
     lastPivotLowIndex := bar_index
-plot(lastPivotLow, color = color.red, offset = -pivotBarsLength)
+// plot(lastPivotLow, color = color.red, offset = -pivotBarsLength)
+
+//////////////////////////////
+// Extend lines until they are crossed (by close)
+// https://www.tradingview.com/pine-script-docs/en/v5/language/Loops.html
+// https://stackoverflow.com/a/68733918
+i_maxLineLength = 400
+
+adjustHorizontalLineEnd(_array, stopExtensionOnCloseCross, fixedExtensionLength) =>
+    int _qtyOfLines = array.size(_array)
+    if _qtyOfLines > 0
+        for _i = _qtyOfLines - 1 to 0
+            fvg  _current = array.get(_array, _i)
+            float _lineLevel = _current.limit
+            box _fvgBox = _current.fvgBox
+
+            if stopExtensionOnCloseCross
+                bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel) and bar_index != box.get_left(_fvgBox)
+                // line.set_x2(_current, bar_index)
+                box.set_right(_fvgBox, bar_index)
+                if _lineCrossed or bar_index - box.get_left(_fvgBox) > i_maxLineLength
+                    array.remove(_array, _i)
+
+                true    // don't need a return value but this fixes a return type error
+            else
+                box.set_right(_fvgBox, box.get_left(_fvgBox) + fixedExtensionLength)
+
+                false    // don't need a return value but this fixes a return type error
+
+////////////////////////////
+adjustHorizontalLineEnd(fvgs, not fixedBoxLength, boxLength)
+
