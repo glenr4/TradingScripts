@@ -53,21 +53,65 @@ isOverLapPriorBar(int middleCandleIndex) =>
 fvgSize = isOverLapPriorBar(1) 
 
 // Pivots
-isPivotHigh = ta.pivothigh(2,2)
-// plot(isPivotHigh)
+var lastPivotHigh = 0.0
+var lastPivotHighIndex = 0
+var lastPivotLow = 0.0
+var lastPivotLowIndex = 0
 
-isPivotLow = ta.pivotlow(2,2)
-// plot(isPivotLow)
+pivotBarsLength = 2
+pivotHigh = ta.pivothigh(pivotBarsLength,pivotBarsLength)
+isPivotHigh = not na(pivotHigh)
+
+pivotLow = ta.pivotlow(pivotBarsLength,pivotBarsLength)
+isPivotLow = not na(pivotLow)
 
 // Large FVG
 // Note: pivot actually happend 'rightbars' ago ie 2 bars
 isLargeFVG = fvgSize >= largeFVG
 
-isPivotHighFVG = isLargeFVG and (isPivotHigh or isPivotHigh[1]) and isBearish(1)
+isPivotHighFVG = isLargeFVG and (pivotHigh or pivotHigh[1]) and isBearish(1)
 plotshape(isPivotHighFVG, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
 
-isPivotLowFVG = isLargeFVG and (isPivotLow or isPivotLow[1]) and isBullish(1)
+isPivotLowFVG = isLargeFVG and (pivotLow or pivotLow[1]) and isBullish(1)
 plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=color.red, size=size.tiny)
 
 // Alerts
 alertcondition(isPivotHighFVG or isPivotLowFVG, "FVG near pivot", "FVG near pivot")
+
+
+
+// Highlights
+var isInPivotHighFVG = false
+var isInPivotLowFVG = false
+
+if(isPivotHighFVG)
+    isInPivotHighFVG := true
+if(isInPivotHighFVG and isPivotLow)
+    isInPivotHighFVG := false
+    label.new(lastPivotHighIndex - pivotBarsLength, lastPivotHigh, 
+                  text = str.tostring(lastPivotHigh - pivotLow),
+                  color = color.new(color.gray, 80), 
+                  textcolor = color.red,
+                  style = label.style_label_down,
+                  textalign = text.align_right)
+
+if(isPivotLowFVG)
+    isInPivotLowFVG := true
+if(isInPivotLowFVG and isPivotHigh)
+    isInPivotLowFVG := false
+    label.new(lastPivotLowIndex - pivotBarsLength, lastPivotLow, text = str.tostring(pivotHigh - lastPivotLow), color = color.new(color.gray, 80), textcolor = color.green, style = label.style_label_up, textalign = text.align_right)
+
+
+bgcolor(isInPivotHighFVG ? color.new(color.red, 80) : na)
+bgcolor(isInPivotLowFVG ? color.new(color.green, 80) : na)
+
+// Save last pivot
+if(isPivotHigh)
+    lastPivotHigh := pivotHigh
+    lastPivotHighIndex := bar_index
+plot(lastPivotHigh, color = color.red, offset = -pivotBarsLength)
+
+if(isPivotLow)
+    lastPivotLow := pivotLow
+    lastPivotLowIndex := bar_index
+plot(lastPivotLow, color = color.red, offset = -pivotBarsLength)
