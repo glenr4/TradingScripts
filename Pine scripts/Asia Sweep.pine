@@ -4,13 +4,13 @@
 //@version=5
 strategy("Asia Sweep", overlay=true, margin_long=100, margin_short=100)
 
-isInTrade = strategy.position_size != 0
-isLong = strategy.position_size > 0
-isShort = strategy.position_size < 0
+inTrade = strategy.position_size != 0
+inLongTrade = strategy.position_size > 0
+inShortTrade = strategy.position_size < 0
 
 // TBC: what timezone should this be in? NY has just changed by 1 hour on 10 March so these times are different now in March than they were at the start of the year in AEDT
 // Need to determine what defines this, is it calld the Asia kill zone? It must be when London comes online, as that is the first major session after Asia
-inAsiaSession = not na(time("", "0100-0700", "GMT+0", 0))
+inAsiaSession = not na(time("", "0100-0700", "GMT+0", 0)) 
 startOfAsiaSession = ta.rising((inAsiaSession ? 1.0 : 0.0),1)
 endOfAsiaSession = ta.falling((inAsiaSession ? 1.0 : 0.0),1)
 inTradingWindow = not na(time("", "0700-0900", "GMT+0", 0)) // nominally 2 hours after Asia session
@@ -19,7 +19,7 @@ endOfTradingWindow = ta.falling((inTradingWindow ? 1.0 : 0.0),1)
 
 // The chart uses America/New York session
 // label.new(bar_index,0, syminfo.timezone, yloc=yloc.abovebar)
-
+ 
 // Is new candle
 isNewCandle() =>
     var previousBarIndex = 0
@@ -59,14 +59,22 @@ bgcolor(inAsiaSession ? color.new( color.yellow, 80) : na)
 // Trades
 var tradingWindowOpen = false
 if(startOfTradingWindow)
+    log.info("startOfTradingWindow")
     tradingWindowOpen := true
 if(endOfTradingWindow)
+    log.info("endOfTradingWindow")
     tradingWindowOpen := false
+// log.info("tradingWindowOpen: " + str.tostring(tradingWindowOpen))
 
 // If closed outside of Asia range then don't open a trade
-if(isNewCandle() and close[1] < lastLowest)
+if(isNewCandle() and (close < lastLowest or close > lastHighest))
+    log.info("Closed outside of Asia range")
+
     tradingWindowOpen := false
+    // log.info("tradingWindowOpen: " + str.tostring(tradingWindowOpen))
+    
     strategy.cancel("Buy")
+    strategy.cancel("Sell")
 
 r = 500 // dollars
 riskPoints = 0.00100 
@@ -78,24 +86,60 @@ var stopLoss = 0.0
 // qty = 100000
 lineLength = 20
 
-longCondition = tradingWindowOpen and not isInTrade and isNewCandle() and low <= lastLowest and close > lastLowest
+// Long Entry
+longCondition = tradingWindowOpen and not inTrade and isNewCandle() and low <= lastLowest and close > lastLowest
 
 if (longCondition)
+    log.warning("longCondition")
+
     tradingWindowOpen := false
 
     takeProfit := lastHighest
     entryLimit = high
-    stopLoss := entryLimit - (lastHighest - lastLowest)/r2r
-    qty = r/(entryLimit - stopLoss)//100000
+    stopLoss := entryLimit - math.abs(entryLimit - takeProfit)/r2r
+    qty = r/math.abs(entryLimit - stopLoss)//100000
   
+    log.info("Asia range: " + str.tostring(math.abs(lastHighest - lastLowest)))
+    log.info("Take Profit range: " + str.tostring(math.abs(takeProfit - entryLimit)))
+    log.info("Stop Loss range: " + str.tostring(math.abs(entryLimit - takeProfit)/r2r))
+
     strategy.order("Buy", strategy.long, qty, stop = entryLimit)
 
     line.new(x1=bar_index, y1=entryLimit, x2=bar_index+lineLength, y2=entryLimit, color= color.blue)
     line.new(x1=bar_index, y1=takeProfit, x2=bar_index+lineLength, y2=takeProfit, color= color.green)
     line.new(x1=bar_index, y1=stopLoss, x2=bar_index+lineLength, y2=stopLoss, color= color.red)
 
-if(isInTrade and (high >= takeProfit or low <= stopLoss))
+if(inLongTrade and (high >= takeProfit or low <= stopLoss))
+    log.warning("Close long trade")
+
     strategy.close("Buy", immediately = true)
+
+// Short Entry
+shortCondition = tradingWindowOpen and not inTrade and isNewCandle() and high >= lastHighest and close < lastHighest
+
+if (shortCondition)
+    log.warning("shortCondition")
+
+    tradingWindowOpen := false
+
+    takeProfit := lastLowest
+    entryLimit = low
+    stopLoss := entryLimit + math.abs(entryLimit - takeProfit)/r2r
+    qty = r/math.abs(entryLimit - stopLoss)//100000
+
+    log.info("Asia range: " + str.tostring(math.abs(lastHighest - lastLowest)))
+    log.info("Take Profit range: " + str.tostring(math.abs(takeProfit - entryLimit)))
+    log.info("Stop Loss range: " + str.tostring(math.abs(entryLimit - takeProfit)/r2r))
+  
+    strategy.order("Sell", strategy.short, qty, stop = entryLimit)
+
+    line.new(x1=bar_index, y1=entryLimit, x2=bar_index+lineLength, y2=entryLimit, color= color.blue)
+    line.new(x1=bar_index, y1=takeProfit, x2=bar_index+lineLength, y2=takeProfit, color= color.green)
+    line.new(x1=bar_index, y1=stopLoss, x2=bar_index+lineLength, y2=stopLoss, color= color.red)
+
+if(inShortTrade and (low <= takeProfit or high >= stopLoss))
+    log.warning("Close short trade")
+    strategy.close("Sell", immediately = true)
 
 plot(lastLowest)
 plot(lastHighest,"",color.red)
