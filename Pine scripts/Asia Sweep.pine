@@ -1,0 +1,64 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+strategy("Asia Sweep", overlay=true, margin_long=100, margin_short=100)
+
+isInTrade = strategy.position_size != 0
+isLong = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+// TBC: what timezone should this be in? NY has just changed by 1 hour on 10 March so these times are different now in March than they were at the start of the year in AEDT
+// Need to determine what defines this, is it calld the Asia kill zone? It must be when London comes online, as that is the first major session after Asia
+inAsiaSession = not na(time("", "0100-0700", "GMT+0", 0))
+startOfAsiaSession = ta.rising((inAsiaSession ? 1.0 : 0.0),1)
+endOfAsiaSession = ta.falling((inAsiaSession ? 1.0 : 0.0),1)
+
+// The chart uses America/New York session
+// label.new(bar_index,0, syminfo.timezone, yloc=yloc.abovebar)
+
+// Is new candle
+isNewCandle() =>
+    var previousBarIndex = 0
+    isNewCandle = false
+
+    if previousBarIndex != bar_index
+        isNewCandle := true
+        previousBarIndex := bar_index
+
+    isNewCandle
+
+var highest = 0.0
+var lastHighest = 0.0
+
+if(isNewCandle() and inAsiaSession)
+    if(high > highest)
+        highest := high
+if(endOfAsiaSession)
+    lastHighest := highest
+    highest := 0.0
+
+var lowest = 0.0
+var lastLowest = 0.0
+
+if(isNewCandle() and inAsiaSession)
+    if(low < lowest)
+        lowest := low
+if(endOfAsiaSession)
+    lastLowest := lowest
+    lowest := 10.0
+
+plot(lowest)
+plot(lastLowest,"",color.red)
+
+bgcolor(inAsiaSession ? color.new( color.yellow, 80) : na)
+
+longCondition = ta.crossover(ta.sma(close, 14), ta.sma(close, 28))
+if (longCondition)
+    strategy.entry("My Long Entry Id", strategy.long)
+
+// shortCondition = ta.crossunder(ta.sma(close, 14), ta.sma(close, 28))
+// if (shortCondition)
+//     strategy.entry("My Short Entry Id", strategy.short)
+
+// asiaHigh = ta.highest()
