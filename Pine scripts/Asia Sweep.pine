@@ -13,6 +13,9 @@ isShort = strategy.position_size < 0
 inAsiaSession = not na(time("", "0100-0700", "GMT+0", 0))
 startOfAsiaSession = ta.rising((inAsiaSession ? 1.0 : 0.0),1)
 endOfAsiaSession = ta.falling((inAsiaSession ? 1.0 : 0.0),1)
+inTradingWindow = not na(time("", "0700-0900", "GMT+0", 0)) // nominally 2 hours after Asia session
+startOfTradingWindow = ta.rising((inTradingWindow ? 1.0 : 0.0),1)
+endOfTradingWindow = ta.falling((inTradingWindow ? 1.0 : 0.0),1)
 
 // The chart uses America/New York session
 // label.new(bar_index,0, syminfo.timezone, yloc=yloc.abovebar)
@@ -48,17 +51,31 @@ if(endOfAsiaSession)
     lastLowest := lowest
     lowest := 10.0
 
-plot(lowest)
-plot(lastLowest,"",color.red)
+// plot(lowest)
+// plot(lastLowest,"",color.red)
 
 bgcolor(inAsiaSession ? color.new( color.yellow, 80) : na)
 
-longCondition = ta.crossover(ta.sma(close, 14), ta.sma(close, 28))
+// Trades
+var tradingWindowOpen = false
+if(startOfTradingWindow)
+    tradingWindowOpen := true
+if(endOfTradingWindow)
+    tradingWindowOpen := false
+
+// If closed outside of Asia range then no trading
+if(tradingWindowOpen and isNewCandle() and close[1] < lastLowest)
+    tradingWindowOpen := false
+
+longCondition = tradingWindowOpen and not isInTrade and isNewCandle() and low <= lastLowest and close > lastLowest
+
 if (longCondition)
-    strategy.entry("My Long Entry Id", strategy.long)
+    label.new(bar_index,0,yloc=yloc.belowbar,style=label.style_diamond,color=color.green, size = size.normal)
+    strategy.entry("Buy", strategy.long, 500000)
+    tradingWindowOpen := false
 
-// shortCondition = ta.crossunder(ta.sma(close, 14), ta.sma(close, 28))
-// if (shortCondition)
-//     strategy.entry("My Short Entry Id", strategy.short)
+if(high >= lastHighest)// or not tradingWindowOpen)
+    strategy.close("Buy", immediately = true)
 
-// asiaHigh = ta.highest()
+plot(lastLowest)
+plot(lastHighest,"",color.red)
