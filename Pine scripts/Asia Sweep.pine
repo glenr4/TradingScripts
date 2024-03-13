@@ -95,7 +95,8 @@ if (longCondition)
     tradingWindowOpen := false
 
     takeProfit := lastHighest
-    entryLimit = high
+    // entryLimit = high // confirmation
+    entryLimit = close // ASAP
     stopLoss := entryLimit - math.abs(entryLimit - takeProfit)/r2r
     qty = r/math.abs(entryLimit - stopLoss)//100000
   
@@ -123,7 +124,8 @@ if (shortCondition)
     tradingWindowOpen := false
 
     takeProfit := lastLowest
-    entryLimit = low
+    // entryLimit = low // confirmation
+    entryLimit = close // ASAP
     stopLoss := entryLimit + math.abs(entryLimit - takeProfit)/r2r
     qty = r/math.abs(entryLimit - stopLoss)//100000
 
