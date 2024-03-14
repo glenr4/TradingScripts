@@ -76,11 +76,11 @@ isPivotLow = not na(pivotLow)
 // Note: pivot actually happend 'rightbars' ago ie 2 bars
 isLargeFVG = fvgSize >= largeFVG
 
-isPivotHighFVG = isLargeFVG and (pivotHigh or pivotHigh[1]) and isBearish(1)
-plotshape(isPivotHighFVG, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
+isPivotHighFVG = isLargeFVG and (isPivotHigh or isPivotHigh[1]) and isBearish(1)
+// plotshape(isPivotHighFVG, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
 
-isPivotLowFVG = isLargeFVG and (pivotLow or pivotLow[1]) and isBullish(1)
-plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=color.red, size=size.tiny)
+isPivotLowFVG = isLargeFVG and (isPivotLow or isPivotLow[1]) and isBullish(1)
+// plotshape(isPivotLowFVG, style=shape.circle, location=location.belowbar, color=color.red, size=size.tiny)
 
 // Alerts
 alertcondition(isPivotHighFVG or isPivotLowFVG, "FVG near pivot", "FVG near pivot")
