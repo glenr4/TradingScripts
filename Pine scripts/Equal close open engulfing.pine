@@ -1,0 +1,22 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Equal close open engulfing", overlay = true)
+
+
+
+
+isEqualCloseOpen = close[1] == open
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) => 
+    close[i] < open[i]
+
+isBearishPattern = isBearish(0) and isBullish(1) and (high > high[1] and close < open[1])
+isBullishPattern = isBullish(0) and isBearish(1) and (low < low[1] and close > open[1])
+
+plotshape(isBearishPattern, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
+plotshape(isBullishPattern, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
+
