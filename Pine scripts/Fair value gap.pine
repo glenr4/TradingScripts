@@ -62,12 +62,12 @@ adjustBox(_array, stopExtensionOnCross, fixedExtensionLength) =>
             fvg  _fvg = array.get(_array, _i)
 
             if stopExtensionOnCross
+                box.set_right(_fvg.fvgBox, bar_index) // extend right
 
                 bool  _fvgMitigated = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox) // ignore if start of box
                 if _fvgMitigated or bar_index - box.get_left(_fvg.fvgBox) > i_maxLineLength
                     array.remove(_array, _i)
                 else
-                    box.set_right(_fvg.fvgBox, bar_index) // extend right
  
                     if(reducePartialMitigation)
                         if(_fvg.isBullish and low < box.get_top(_fvg.fvgBox))
@@ -83,5 +83,29 @@ adjustBox(_array, stopExtensionOnCross, fixedExtensionLength) =>
                 false    // don't need a return value but this fixes a return type error
 
 ////////////////////////////
+
+// Signals
+wickInAndOut(_array) =>
+    int _boxCount = array.size(_array)
+
+    if _boxCount > 0
+        for _i = _boxCount - 1 to 0
+            fvg  _fvg = array.get(_array, _i)
+            
+            isBullishWickInAndOut = isBullish(0) and _fvg.isBullish and low < box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
+            isBearishWickInAndOut = isBearish(0) and not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
+
+            if(isBullishWickInAndOut)
+                label.new(bar_index, low, yloc=yloc.belowbar, style=label.style_triangleup, size=size.tiny)
+                true
+
+            else if (isBearishWickInAndOut)
+                label.new(bar_index, high, yloc=yloc.abovebar, style=label.style_triangledown, size=size.tiny)
+
+                false
+            else
+                na
+
+wickInAndOut(fvgs)
 adjustBox(fvgs, not fixedBoxLength, boxLength)
 
