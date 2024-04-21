@@ -47,7 +47,6 @@ isOverLapPriorBar(int middleCandleIndex) =>
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
     fvgSize // return value
 
-fvgSize = isOverLapPriorBar(1) 
 
 //////////////////////////////
 maxLength = 400
@@ -90,8 +89,8 @@ wickInAndOut(_array) =>
         for _i = _boxCount - 1 to 0
             fvg  _fvg = array.get(_array, _i)
             
-            isBullishWickInAndOut = isBullish(0) and _fvg.isBullish and low < box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
-            isBearishWickInAndOut = isBearish(0) and not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
+            isBullishWickInAndOut = isBullish(0) and _fvg.isBullish and low <= box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
+            isBearishWickInAndOut = isBearish(0) and not _fvg.isBullish and high >= box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
 
             if(isBullishWickInAndOut)
                 label.new(bar_index, low, yloc=yloc.belowbar, style=label.style_triangleup, size=size.tiny)
@@ -99,7 +98,10 @@ wickInAndOut(_array) =>
             else if (isBearishWickInAndOut)
                 label.new(bar_index, high, yloc=yloc.abovebar, style=label.style_triangledown, size=size.tiny)
 
+
 if(showWickInAndOut)
     wickInAndOut(fvgs)
+
+fvgSize = isOverLapPriorBar(1) 
 adjustBox(fvgs, not fixedBoxLength, boxLength)
 
