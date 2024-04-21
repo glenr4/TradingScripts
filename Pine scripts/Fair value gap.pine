@@ -51,7 +51,7 @@ isOverLapPriorBar(int middleCandleIndex) =>
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), high[previousCandleIndex], true))
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), high[previousCandleIndex], true))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
                 array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), low[previousCandleIndex], false))
@@ -66,18 +66,28 @@ fvgSize = isOverLapPriorBar(1)
 // https://stackoverflow.com/a/68733918
 i_maxLineLength = 400
 
-adjustHorizontalLineEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
-    int _qtyOfLines = array.size(_array)
-    if _qtyOfLines > 0
-        for _i = _qtyOfLines - 1 to 0
+adjustBoxEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
+    int _boxCount = array.size(_array)
+
+    if _boxCount > 0
+        for _i = _boxCount - 1 to 0
             fvg  _fvg = array.get(_array, _i)
 
             if stopExtensionOnCross
-                bool  _lineCrossed = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox) // ignore if start of box
-                
-                box.set_right(_fvg.fvgBox, bar_index)
-                if _lineCrossed or bar_index - box.get_left(_fvg.fvgBox) > i_maxLineLength
+
+                bool  _fvgMitigated = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox) // ignore if start of box
+                if _fvgMitigated or bar_index - box.get_left(_fvg.fvgBox) > i_maxLineLength
                     array.remove(_array, _i)
+                else
+                    // Extend right
+                    box.set_right(_fvg.fvgBox, bar_index)
+ 
+                    // Reduce box for partial mitigation
+                    if(_fvg.isBullish and low < box.get_top(_fvg.fvgBox))
+                        box.set_top(_fvg.fvgBox, low)
+                    if(not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox))
+                        box.set_bottom(_fvg.fvgBox, high)
+
 
                 true    // don't need a return value but this fixes a return type error
             else
@@ -86,5 +96,5 @@ adjustHorizontalLineEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
                 false    // don't need a return value but this fixes a return type error
 
 ////////////////////////////
-adjustHorizontalLineEnd(fvgs, not fixedBoxLength, boxLength)
+adjustBoxEnd(fvgs, not fixedBoxLength, boxLength)
 
