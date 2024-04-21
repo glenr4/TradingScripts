@@ -14,6 +14,7 @@ largeFVG = input.float(0.00010, "Large FVG", step = 0.00001)
 type fvg
     box   fvgBox
     float limit
+    bool isBullish
 
 var fvg[] fvgs = array.new<fvg>(0)
 
@@ -50,10 +51,10 @@ isOverLapPriorBar(int middleCandleIndex) =>
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), high[previousCandleIndex]))
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), high[previousCandleIndex], true))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), low[previousCandleIndex]))
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), low[previousCandleIndex], false))
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
     fvgSize // return value
 
@@ -127,24 +128,22 @@ if(isPivotLow)
 // https://stackoverflow.com/a/68733918
 i_maxLineLength = 400
 
-adjustHorizontalLineEnd(_array, stopExtensionOnCloseCross, fixedExtensionLength) =>
+adjustHorizontalLineEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
     int _qtyOfLines = array.size(_array)
     if _qtyOfLines > 0
         for _i = _qtyOfLines - 1 to 0
-            fvg  _current = array.get(_array, _i)
-            float _lineLevel = _current.limit
-            box _fvgBox = _current.fvgBox
+            fvg  _fvg = array.get(_array, _i)
 
-            if stopExtensionOnCloseCross
-                bool  _lineCrossed = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel) and bar_index != box.get_left(_fvgBox)
-                // line.set_x2(_current, bar_index)
-                box.set_right(_fvgBox, bar_index)
-                if _lineCrossed or bar_index - box.get_left(_fvgBox) > i_maxLineLength
+            if stopExtensionOnCross
+                bool  _lineCrossed = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox) // ignore if start of box
+                
+                box.set_right(_fvg.fvgBox, bar_index)
+                if _lineCrossed or bar_index - box.get_left(_fvg.fvgBox) > i_maxLineLength
                     array.remove(_array, _i)
 
                 true    // don't need a return value but this fixes a return type error
             else
-                box.set_right(_fvgBox, box.get_left(_fvgBox) + fixedExtensionLength)
+                box.set_right(_fvg.fvgBox, box.get_left(_fvg.fvgBox) + fixedExtensionLength)
 
                 false    // don't need a return value but this fixes a return type error
 
