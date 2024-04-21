@@ -4,12 +4,11 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500)
 
-fixedBoxLength = input.bool(true, "Fixed Box Length")
-boxLength = input.int(3, "Box Length")
+fixedBoxLength = input.bool(false, "Use Fixed Box Length")
+reducePartialMitigation = input.bool(false, "Reduce box on partial mitigation")
+boxLength = input.int(3, "Fixed Box Length")
 boxColour = input.color(color.new(#f6fa03, 60), "Box Colour")
 boxLineColour = input.color(color.new(#f6fa03, 60), "Box Outline Colour")
-
-largeFVG = input.float(0.00010, "Large FVG", step = 0.00001)
 
 type fvg
     box   fvgBox
@@ -22,17 +21,6 @@ isBullish(i) =>
     close[i] > open[i]
 isBearish(i) => 
     close[i] < open[i]
-
-upperWickRange = isBullish(0) ? high - close : high - open
-lowerWickRange = isBullish(0) ? open - low : close - low
-candleRange = high - low
-
-topWickSize = high - math.max(open, close)
-bottomWickSize = math.min(open, close) - low
-
-firstCandleIndex = 2
-secondCandleIndex = 1
-lastCandleIndex = 0
 
 isOverLapPriorBar(int middleCandleIndex) =>
     fvgSize = 0.0
@@ -66,7 +54,7 @@ fvgSize = isOverLapPriorBar(1)
 // https://stackoverflow.com/a/68733918
 i_maxLineLength = 400
 
-adjustBoxEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
+adjustBox(_array, stopExtensionOnCross, fixedExtensionLength) =>
     int _boxCount = array.size(_array)
 
     if _boxCount > 0
@@ -79,14 +67,13 @@ adjustBoxEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
                 if _fvgMitigated or bar_index - box.get_left(_fvg.fvgBox) > i_maxLineLength
                     array.remove(_array, _i)
                 else
-                    // Extend right
-                    box.set_right(_fvg.fvgBox, bar_index)
+                    box.set_right(_fvg.fvgBox, bar_index) // extend right
  
-                    // Reduce box for partial mitigation
-                    if(_fvg.isBullish and low < box.get_top(_fvg.fvgBox))
-                        box.set_top(_fvg.fvgBox, low)
-                    if(not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox))
-                        box.set_bottom(_fvg.fvgBox, high)
+                    if(reducePartialMitigation)
+                        if(_fvg.isBullish and low < box.get_top(_fvg.fvgBox))
+                            box.set_top(_fvg.fvgBox, low)
+                        if(not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox))
+                            box.set_bottom(_fvg.fvgBox, high)
 
 
                 true    // don't need a return value but this fixes a return type error
@@ -96,5 +83,5 @@ adjustBoxEnd(_array, stopExtensionOnCross, fixedExtensionLength) =>
                 false    // don't need a return value but this fixes a return type error
 
 ////////////////////////////
-adjustBoxEnd(fvgs, not fixedBoxLength, boxLength)
+adjustBox(fvgs, not fixedBoxLength, boxLength)
 
