@@ -4,12 +4,11 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500, max_labels_count = 500)
 
-fixedBoxLength = input.bool(false, "Use Fixed Length")
+fixedBoxLength = input.bool(true, "Use Fixed Length")
 reducePartialMitigation = input.bool(false, "Reduce FVG on partial mitigation")
 showWickInAndOut = input.bool(false, "Indicate wick in and out")
 boxLength = input.int(3, "Fixed Length")
-boxColour = input.color(color.new(#f6fa03, 60), "Box Colour")
-boxLineColour = input.color(color.new(#f6fa03, 60), "Box Outline Colour")
+boxColour = input.color(color.new(#f6fa03, 80), "Box Colour")
 
 type fvg
     box   fvgBox
@@ -40,10 +39,10 @@ isOverLapPriorBar(int middleCandleIndex) =>
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), high[previousCandleIndex], true))
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), high[previousCandleIndex], true))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxLineColour, border_width = 1), low[previousCandleIndex], false))
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), low[previousCandleIndex], false))
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
     fvgSize // return value
 
@@ -89,8 +88,10 @@ wickInAndOut(_array) =>
         for _i = _boxCount - 1 to 0
             fvg  _fvg = array.get(_array, _i)
             
-            isBullishWickInAndOut = isBullish(0) and _fvg.isBullish and low <= box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
-            isBearishWickInAndOut = isBearish(0) and not _fvg.isBullish and high >= box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
+            // isBullishWickInAndOut = isBullish(0) and _fvg.isBullish and low <= box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
+            // isBearishWickInAndOut = isBearish(0) and not _fvg.isBullish and high >= box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
+            isBullishWickInAndOut =  _fvg.isBullish and low <= box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
+            isBearishWickInAndOut =  not _fvg.isBullish and high >= box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
 
             if(isBullishWickInAndOut)
                 label.new(bar_index, low, yloc=yloc.belowbar, style=label.style_triangleup, size=size.tiny)
