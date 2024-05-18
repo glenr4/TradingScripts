@@ -10,14 +10,17 @@ limit = input.float(0.00200, "Surge limit", step=0.00100)
 bullishHighlightColour = input.color(color.new(#03f80c, 60), title="Bullish Highlight Colour")
 bearishHighlightColour = input.color(color.new(#f60404, 80), title="Bearish Highlight Colour")
 
-priceDiff = close[0] - close[lookback]
-isBullish = priceDiff >= 0
+isBullish(i) =>
+    close[i] > open[i]
 
-aboveLimit = math.abs(priceDiff) >= limit
+lowestCloseLookback = ta.lowest(close, lookback+1) // The function includes the current candle, so add one to get actual lookback
+highestCloseLookback = ta.highest(close, lookback+1)
 
-lowest = ta.lowest(lookback)
-highest = ta.highest(lookback)
-if(aboveLimit and isBullish)
-    box.new(bar_index - lookback, lowest, bar_index + 1, highest, bgcolor=bullishHighlightColour, border_color = na)
-if(aboveLimit and not isBullish)
-    box.new(bar_index - lookback, highest, bar_index + 1, lowest, bgcolor=bearishHighlightColour, border_color = na)
+priceDiff = isBullish(0) ? close - lowestCloseLookback : highestCloseLookback - close
+
+aboveLimit = priceDiff >= limit
+
+if(aboveLimit and isBullish(0))
+    box.new(bar_index - lookback, lowestCloseLookback, bar_index + 1, highestCloseLookback, bgcolor=bullishHighlightColour, border_color = na)
+if(aboveLimit and not isBullish(0))
+    box.new(bar_index - lookback, highestCloseLookback, bar_index + 1, lowestCloseLookback, bgcolor=bearishHighlightColour, border_color = na)
