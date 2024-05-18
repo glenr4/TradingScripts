@@ -6,7 +6,8 @@ indicator("Surge", overlay = true, max_boxes_count = 500)
 
 
 lookback = input.int(5, "Candle lookback")
-limit = input.float(0.00200, "Surge limit", step=0.00100)
+minSurgeUp = input.float(0.01000, "Surge minimum up", step=0.00100)
+minSurgeDown = input.float(0.01200, "Surge minimum down", step=0.00100)
 bullishHighlightColour = input.color(color.new(#03f80c, 60), title="Bullish Highlight Colour")
 bearishHighlightColour = input.color(color.new(#f60404, 80), title="Bearish Highlight Colour")
 
@@ -18,9 +19,12 @@ highestCloseLookback = ta.highest(close, lookback+1)
 
 priceDiff = isBullish(0) ? close - lowestCloseLookback : highestCloseLookback - close
 
-aboveLimit = priceDiff >= limit
+isSurgeUp = priceDiff >= minSurgeUp and isBullish(0)
+isSurgeDown = priceDiff >= minSurgeDown and not isBullish(0)
 
-if(aboveLimit and isBullish(0))
-    box.new(bar_index - lookback, lowestCloseLookback, bar_index + 1, highestCloseLookback, bgcolor=bullishHighlightColour, border_color = na)
-if(aboveLimit and not isBullish(0))
-    box.new(bar_index - lookback, highestCloseLookback, bar_index + 1, lowestCloseLookback, bgcolor=bearishHighlightColour, border_color = na)
+if(isSurgeUp)
+    box.new(bar_index - lookback, lowestCloseLookback, bar_index, highestCloseLookback, bgcolor=bullishHighlightColour, border_color = na)
+if(isSurgeDown)
+    box.new(bar_index - lookback, highestCloseLookback, bar_index, lowestCloseLookback, bgcolor=bearishHighlightColour, border_color = na)
+
+// plot(priceDiff)
