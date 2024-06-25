@@ -1,17 +1,21 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © glenrutherford4
 
+// TODO: allow box to extend further than the most recent bar
+// TODO: add signal for reversal FVG with twice body size
+
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500, max_labels_count = 500)
 
-fixedBoxLength = input.bool(true, "Use Fixed Length")
+fixedBoxLength = input.bool(false, "Use Fixed Length")
 reducePartialMitigation = input.bool(false, "Reduce FVG on partial mitigation")
-showWickInAndOut = input.bool(false, "Indicate wick in and out")
+mitigateOnTouch = input.bool(true, "Mitigate on touch")
 boxLength = input.int(3, "Fixed Length")
-boxColour = input.color(color.new(#f6fa03, 80), "Box Colour")
+boxColour = input.color(color.new(#f6fa03, 70), "Box Colour")
+showFvgReversalSignals = input.bool(false, "Show FVG reversal signals")
 
 type fvg
-    box   fvgBox
+    box fvgBox
     float limit
     bool isBullish
 
@@ -24,7 +28,6 @@ isBearish(i) =>
 
 isOverLapPriorBar(int middleCandleIndex) =>
     fvgSize = 0.0
-    // When middle candle is bullish or bearish, this assumes the candles either side continue in the same direction
     if middleCandleIndex >= 1
         previousCandleIndex = middleCandleIndex + 1
         nextCandleIndex = middleCandleIndex - 1
@@ -39,10 +42,22 @@ isOverLapPriorBar(int middleCandleIndex) =>
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), high[previousCandleIndex], true))
+                limit = 0.0
+                if(mitigateOnTouch)
+                    limit := low[nextCandleIndex]
+                else
+                    limit := high[previousCandleIndex]
+
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), limit, true))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), low[previousCandleIndex], false))
+                limit = 0.0
+                if(mitigateOnTouch)
+                    limit := high[nextCandleIndex]
+                else
+                    limit := low[previousCandleIndex]
+
+                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), limit, false))
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
     fvgSize // return value
 
@@ -60,12 +75,12 @@ adjustBox(_array, stopExtensionOnCross, fixedExtensionLength) =>
             if stopExtensionOnCross
                 box.set_right(_fvg.fvgBox, bar_index) // extend right
 
-                bool  _fvgMitigated = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox) // ignore if start of box
+                bool  _fvgMitigated = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox)+1 // ignore until after FVG
                 if _fvgMitigated or bar_index - box.get_left(_fvg.fvgBox) > maxLength
                     array.remove(_array, _i)
                 else
  
-                    if(reducePartialMitigation)
+                    if(reducePartialMitigation and not mitigateOnTouch)
                         if(_fvg.isBullish and low < box.get_top(_fvg.fvgBox))
                             box.set_top(_fvg.fvgBox, low)
                         if(not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox))
@@ -80,29 +95,23 @@ adjustBox(_array, stopExtensionOnCross, fixedExtensionLength) =>
 
 ////////////////////////////
 
-// Signals
-wickInAndOut(_array) =>
-    int _boxCount = array.size(_array)
-
-    if _boxCount > 0
-        for _i = _boxCount - 1 to 0
-            fvg  _fvg = array.get(_array, _i)
-            
-            // isBullishWickInAndOut = isBullish(0) and _fvg.isBullish and low <= box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
-            // isBearishWickInAndOut = isBearish(0) and not _fvg.isBullish and high >= box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
-            isBullishWickInAndOut =  _fvg.isBullish and low <= box.get_top(_fvg.fvgBox) and close > box.get_top(_fvg.fvgBox)
-            isBearishWickInAndOut =  not _fvg.isBullish and high >= box.get_bottom(_fvg.fvgBox) and close < box.get_bottom(_fvg.fvgBox)
-
-            if(isBullishWickInAndOut)
-                label.new(bar_index, low, yloc=yloc.belowbar, style=label.style_triangleup, size=size.tiny)
-
-            else if (isBearishWickInAndOut)
-                label.new(bar_index, high, yloc=yloc.abovebar, style=label.style_triangledown, size=size.tiny)
-
-
-if(showWickInAndOut)
-    wickInAndOut(fvgs)
-
 fvgSize = isOverLapPriorBar(1) 
 adjustBox(fvgs, not fixedBoxLength, boxLength)
 
+alertcondition(fvgSize > 0,"FVG Formed","FVG Formed")
+
+
+
+// Signals
+// Reversal FVG forming
+bodySize(i) =>
+    math.abs(open[i] - close[i])
+
+isMiddleBodyBigger = bodySize(0) >= 2*bodySize(1)
+isMiddleBodyLarge = bodySize(0) >= 0.00100
+
+isBullishReversal = showFvgReversalSignals and isBearish(1) and isMiddleBodyBigger and close > high[1] and isMiddleBodyLarge
+isBearishReversal = showFvgReversalSignals and isBullish(1) and isMiddleBodyBigger and close < low[1] and isMiddleBodyLarge
+
+plotshape(isBullishReversal, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
+plotshape(isBearishReversal, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
