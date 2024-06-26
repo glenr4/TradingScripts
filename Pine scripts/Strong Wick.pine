@@ -1,0 +1,19 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Strong wick", overlay = true)
+
+largeWickPercent = input.float(40, "Large wick minimum (%)")
+
+isBullish = close > open
+upperWick = isBullish ? high - close : high - open
+lowerWick = isBullish ? open - low : close - low
+
+fullRange = high - low
+
+isLargeUpperWick = upperWick/fullRange*100 >= largeWickPercent
+isLargeLowerWick = lowerWick/fullRange*100 >= largeWickPercent
+
+plotshape(isLargeUpperWick, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(isLargeLowerWick, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
