@@ -4,14 +4,13 @@
 // these wicks form support/resistance zones.
 
 //@version=5
-indicator("Significant Wick Shadow", overlay = true, max_boxes_count = 500)
+indicator("Significant Wick Shadow", overlay = true, max_boxes_count = 500, max_lines_count = 500)
 
-minWickSignificance = input.int(100, title="Minimum Wick Significance", group= "Technical", step = 5)
-avgPeriods = input.int(20, title="Average Periods", group= "Technical")
+minWickSignificance = input.int(80, title="Minimum Wick Significance", group= "Technical", step = 5)
+avgPeriods = input.int(100, title="Average Periods", group= "Technical")
 shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Appearance")
-transparency = input(70, title="Shadow Transparency", group= "Appearance")
-shadowSize = input(300, title="Shadow Length", group= "Appearance")
-showShadow = input.bool(1, title="Show Shadow", group= "Appearance")
+transparency = input(85, title="Shadow Transparency", group= "Appearance")
+shadowSize = input(100, title="Shadow Length", group= "Appearance")
 
 boxColour = color.new(shadowColour, transparency)
 barRange = high - low
@@ -27,13 +26,13 @@ addShadow(offset, isBullishWick) =>
     BearishWickTop = isBearishWick ? high[offset] : na
     BearishWickBottom = isBearishWick ? (isBullish(offset) ? close[offset] : open[offset]) : na
 
-    box.new(bar_index - offset, BearishWickTop, bar_index + shadowSize - offset, BearishWickBottom, bgcolor=boxColour, border_color=boxColour)
+    box.new(bar_index - offset, BearishWickTop, bar_index + shadowSize - offset, BearishWickBottom, bgcolor=boxColour, border_color=boxColour, border_width = 1)
 
     // Bullish wick
     BullishWickTop = isBullishWick ? (isBullish(offset) ? open[offset] : close[offset]) : na
     BullishWickBottom = isBullishWick ? low[offset] : na
 
-    box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=boxColour, border_color=boxColour)
+    box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=boxColour, border_color=boxColour, border_width = 1)
 
 //////////////////////////////////
 upperWickRange = isBullish(0) ? high - close : high - open
@@ -43,14 +42,7 @@ upperWickSignificance = (barRange/avgRange * upperWickRange/barRange)*100
 lowerWickSignificance = (barRange/avgRange * lowerWickRange/barRange)*100
 
 if(upperWickSignificance >= minWickSignificance)
-    if(showShadow)    
-        addShadow(0, 0)
-    line.new(x1=bar_index, y1=high, x2=bar_index + shadowSize, y2=high, color=color.green, width = 1)
+    addShadow(0, 0)
 
 if(lowerWickSignificance >= minWickSignificance)
-    if(showShadow)    
-        addShadow(0, 1)
-    line.new(x1=bar_index, y1=low, x2=bar_index + shadowSize, y2=low, color=color.red, width=1)
-
-// plot(upperWickSignificance/100)
-// plot(lowerWickSignificance/100)
+    addShadow(0, 1)
