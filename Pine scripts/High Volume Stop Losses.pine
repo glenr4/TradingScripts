@@ -1,62 +1,47 @@
-// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © glenrutherford4
 
 //@version=5
-indicator("High Volume Stop Losses", overlay = true, max_lines_count = 500)
-import TradingView/ta/7
+indicator("Strong wick", overlay = true)
 
-avgPeriods = input.int(100, title="Average periods", minval = 0)
-lineExtensionLength = input.int(300, "Line extension length")
-highBullishVolumeColour = input.color(color.green, "High bullish volume colour")
-highBearishVolumeColour = input.color(color.red, "High bearish volume colour")
-useLookbackMinutes = input.bool(true, "Use lookback for minutes timeframe")
-useLookbackHours = input.bool(true, "Use lookback for hours timeframe")
+useFixedAmount = input.bool(true, "Use Fixed amount")
+largeWickPercent = input.float(50, "Large wick minimum (%)")
 
-highVolumeLookback2m = input.int(330, title="2m", group = "High volume lookback bars", minval = 1)
-highVolumeLookback5m = input.int(100, title="5m", group = "High volume lookback bars", minval = 1)
-highVolumeLookback15m = input.int(100, title="15m", group = "High volume lookback bars", minval = 1)
-highVolumeLookback1h = input.int(50, title="1h", group = "High volume lookback bars", minval = 1)
-highVolumeLookback4h = input.int(18, title="4h", group = "High volume lookback bars", minval = 1)
+isBullish = close > open
+upperWick = isBullish ? high - close : high - open
+lowerWick = isBullish ? open - low : close - low
 
-highVolumeMultiple5m = input.float(3.6, title="5m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
-highVolumeMultiple15m = input.float(3.0, title="15m", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
-highVolumeMultiple1h = input.float(2.5, title="1h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
-highVolumeMultiple4h = input.float(2.0, title="4h", group = "High volume threshold (multiples)", minval = 0, step = 0.1)
+fullRange = high - low
 
-isBullish(offset) =>
-    close[offset] > open[offset]
-isBearish(i) => 
-    close[i] < open[i]
+bool isLargeUpperWick = false
+bool isLargeLowerWick = false
 
-avgVolume = ta.sma(volume, avgPeriods) 
-volumeMultiple = volume / avgVolume
+if(not useFixedAmount)
+    isLargeUpperWick := upperWick/fullRange*100 >= largeWickPercent
+    isLargeLowerWick := lowerWick/fullRange*100 >= largeWickPercent
+
+/////////////////
+minWickSize1m = input.float(6, title="1m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize5m = input.float(10, title="5m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize15m = input.float(30, title="15m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize1h = input.float(50, title="1h", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize4h = input.float(70, title="4h", group = "Fixed wick size (ticks)", minval = 0, step = 1)
 
 timeframeMinutes = timeframe.in_seconds()/60
 isTimeframeHours = timeframeMinutes >= 60
 
-highVolumeMultiple = switch timeframeMinutes
-    5 => highVolumeMultiple5m
-    15 => highVolumeMultiple15m
-    60 => highVolumeMultiple1h
-    240 => highVolumeMultiple4h
-    => 3.0
+minWickSize = switch timeframeMinutes
+    1 => minWickSize1m
+    5 => minWickSize5m
+    15 => minWickSize15m
+    60 => minWickSize1h
+    240 => minWickSize4h
+    => 6
 
-highVolumeLookback = switch timeframeMinutes
-    2 => highVolumeLookback2m
-    5 => highVolumeLookback5m
-    15 => highVolumeLookback15m
-    60 => highVolumeLookback1h
-    240 => highVolumeLookback4h
-    => 5
+if(useFixedAmount)
+    isLargeUpperWick := upperWick*100000 >= minWickSize
+    isLargeLowerWick := lowerWick*100000 >= minWickSize
 
-isHighVolume = false
-if((isTimeframeHours and not useLookbackHours) or not useLookbackMinutes)
-    isHighVolume := volumeMultiple >= highVolumeMultiple
-else
-    isHighVolume := volume >= ta.highest(volume, highVolumeLookback)
-
-if(isBullish(0) and isHighVolume)
-    line.new(x1=bar_index, y1=low, x2=bar_index+lineExtensionLength, y2=low, color= highBullishVolumeColour, style = line.style_dashed, width = 2)
-
-if(isBearish(0) and isHighVolume)
-    line.new(x1=bar_index, y1=high, x2=bar_index+lineExtensionLength, y2=high, color= highBearishVolumeColour, style = line.style_dashed, width = 2)
+/////////////////
+plotshape(isLargeUpperWick, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(isLargeLowerWick, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
