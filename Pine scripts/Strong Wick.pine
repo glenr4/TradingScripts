@@ -4,6 +4,7 @@
 //@version=5
 indicator("Strong wick", overlay = true)
 
+useFixedAmount = input.bool(true, "Use Fixed amount")
 largeWickPercent = input.float(40, "Large wick minimum (%)")
 
 isBullish = close > open
@@ -12,8 +13,29 @@ lowerWick = isBullish ? open - low : close - low
 
 fullRange = high - low
 
-isLargeUpperWick = upperWick/fullRange*100 >= largeWickPercent
-isLargeLowerWick = lowerWick/fullRange*100 >= largeWickPercent
+bool isLargeUpperWick = false
+bool isLargeLowerWick = false
 
+if(not useFixedAmount)
+    isLargeUpperWick := upperWick/fullRange*100 >= largeWickPercent
+    isLargeLowerWick := lowerWick/fullRange*100 >= largeWickPercent
+
+/////////////////
+minWickSize1m = input.float(6, title="1m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize5m = input.float(10, title="5m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+
+timeframeMinutes = timeframe.in_seconds()/60
+isTimeframeHours = timeframeMinutes >= 60
+
+minWickSize = switch timeframeMinutes
+    1 => minWickSize1m
+    5 => minWickSize5m
+    => 6
+
+if(useFixedAmount)
+    isLargeUpperWick := upperWick*100000 >= minWickSize
+    isLargeLowerWick := lowerWick*100000 >= minWickSize
+
+/////////////////
 plotshape(isLargeUpperWick, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
 plotshape(isLargeLowerWick, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
