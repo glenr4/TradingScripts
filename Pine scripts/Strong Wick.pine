@@ -5,36 +5,48 @@
 indicator("Strong wick", overlay = true)
 
 useFixedAmount = input.bool(true, "Use Fixed amount")
-largeWickPercent = input.float(40, "Large wick minimum (%)")
+largeWickPercent = input.float(50, "Large wick minimum (%)")
+contractMultiplier = input.float(100000, title="Contract multiplier", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize1m = input.float(6, title="1m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize5m = input.float(10, title="5m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize15m = input.float(30, title="15m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize1h = input.float(50, title="1h", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize4h = input.float(70, title="4h", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize1d = input.float(250, title="1d", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+minWickSize1w = input.float(700, title="1w", group = "Fixed wick size (ticks)", minval = 0, step = 1)
 
 isBullish = close > open
 upperWick = isBullish ? high - close : high - open
 lowerWick = isBullish ? open - low : close - low
 
-fullRange = high - low
-
 bool isLargeUpperWick = false
 bool isLargeLowerWick = false
+
+// Percentage wick
+fullRange = high - low
 
 if(not useFixedAmount)
     isLargeUpperWick := upperWick/fullRange*100 >= largeWickPercent
     isLargeLowerWick := lowerWick/fullRange*100 >= largeWickPercent
 
 /////////////////
-minWickSize1m = input.float(6, title="1m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
-minWickSize5m = input.float(10, title="5m", group = "Fixed wick size (ticks)", minval = 0, step = 1)
+// Fixed wick
 
 timeframeMinutes = timeframe.in_seconds()/60
-isTimeframeHours = timeframeMinutes >= 60
 
 minWickSize = switch timeframeMinutes
     1 => minWickSize1m
     5 => minWickSize5m
+    15 => minWickSize15m
+    60 => minWickSize1h
+    240 => minWickSize4h
+    1440 => minWickSize1d
+    10080 => minWickSize1w
     => 6
 
 if(useFixedAmount)
-    isLargeUpperWick := upperWick*100000 >= minWickSize
-    isLargeLowerWick := lowerWick*100000 >= minWickSize
+    isLargeUpperWick := upperWick*contractMultiplier >= minWickSize
+    isLargeLowerWick := lowerWick*contractMultiplier >= minWickSize
 
 /////////////////
 plotshape(isLargeUpperWick, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
