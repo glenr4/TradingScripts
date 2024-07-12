@@ -1,0 +1,16 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Body Size")
+
+bodySizeAvg = input.int(5, "Average")
+
+bodySize(i) =>
+    math.abs(open[i] - close[i])
+
+isBullish(i) =>
+    close[i] > open[i]
+
+plot(bodySize(0), "Body Size",color.red)
+plot(ta.sma(bodySize(0), bodySizeAvg), "Body Size Average" , color.blue)
