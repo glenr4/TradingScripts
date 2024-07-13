@@ -13,5 +13,18 @@ isPreviousBarLowSweep = low[1] < low[2] and open[1] >= low[2]
 isCurrentBarReactionBearish = close < low[1]
 isCurrentBarReactionBullish = close > high[1]
 
-plotshape(isPreviousBarHighSweep and isCurrentBarReactionBearish, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
-plotshape(isPreviousBarLowSweep and isCurrentBarReactionBullish, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+
+/////////////
+bodySizeAvg = input.int(5, "Average")
+largeBodySizeMultiplier = input.int(2, "Large body size multiplier")
+
+bodySize(i) =>
+    math.abs(open[i] - close[i])
+
+avgBodySize = ta.sma(bodySize(0), bodySizeAvg)
+
+isCurrentBarLargeBodySize = bodySize(0) >= avgBodySize * largeBodySizeMultiplier
+////////////
+
+plotshape(isPreviousBarHighSweep and isCurrentBarReactionBearish and isCurrentBarLargeBodySize, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(isPreviousBarLowSweep and isCurrentBarReactionBullish and isCurrentBarLargeBodySize, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
