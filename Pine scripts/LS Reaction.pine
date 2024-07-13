@@ -1,0 +1,17 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("LS Reaction", overlay = true)
+
+isPreviousBarHighSweep = high[1] > high[2] and open[1] <= high[2]
+isPreviousBarLowSweep = low[1] < low[2] and open[1] >= low[2]
+
+// plotshape(isPreviousBarHighSweep, style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)
+// plotshape(isPreviousBarLowSweep, style=shape.circle, location=location.belowbar, color=color.yellow, size=size.tiny)
+
+isCurrentBarReactionBearish = close < low[1]
+isCurrentBarReactionBullish = close > high[1]
+
+plotshape(isPreviousBarHighSweep and isCurrentBarReactionBearish, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(isPreviousBarLowSweep and isCurrentBarReactionBullish, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
