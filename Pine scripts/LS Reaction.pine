@@ -4,11 +4,11 @@
 //@version=5
 indicator("LS Reaction", overlay = true)
 
-isPreviousBarHighSweep = high[1] > high[2] and open[1] <= high[2]
-isPreviousBarLowSweep = low[1] < low[2] and open[1] >= low[2]
+isHighSweep(i)=>
+    high[i] > high[i+1] and open[i] <= high[i+1]
 
-// plotshape(isPreviousBarHighSweep, style=shape.circle, location=location.abovebar, color=color.yellow, size=size.tiny)
-// plotshape(isPreviousBarLowSweep, style=shape.circle, location=location.belowbar, color=color.yellow, size=size.tiny)
+isLowSweep(i) => 
+    low[i] < low[i+1] and open[i] >= low[i+1]
 
 isCurrentBarReactionBearish = close < low[1]
 isCurrentBarReactionBullish = close > high[1]
@@ -16,7 +16,7 @@ isCurrentBarReactionBullish = close > high[1]
 
 /////////////
 bodySizeAvg = input.int(5, "Average")
-largeBodySizeMultiplier = input.int(2, "Large body size multiplier")
+largeBodySizeMultiplier = input.float(2, "Large body size multiplier", step=0.1)
 
 bodySize(i) =>
     math.abs(open[i] - close[i])
@@ -26,5 +26,12 @@ avgBodySize = ta.sma(bodySize(0), bodySizeAvg)
 isCurrentBarLargeBodySize = bodySize(0) >= avgBodySize * largeBodySizeMultiplier
 ////////////
 
-plotshape(isPreviousBarHighSweep and isCurrentBarReactionBearish and isCurrentBarLargeBodySize, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
-plotshape(isPreviousBarLowSweep and isCurrentBarReactionBullish and isCurrentBarLargeBodySize, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isHighSweep(1) and isCurrentBarReactionBearish and isCurrentBarLargeBodySize, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(isLowSweep(1) and isCurrentBarReactionBullish and isCurrentBarLargeBodySize, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+
+//////////////////////////
+// Too many matches to be useful
+// isCurrentBarReactionWeakBullish = close < high[1]
+// isCurrentBarReactionWeakBearish = close > low[1]
+// plotshape(isLowSweep(1) and isCurrentBarReactionWeakBullish, style=shape.cross, location=location.abovebar, color=color.gray, size=size.tiny)
+// plotshape(isHighSweep(1) and isCurrentBarReactionWeakBearish, style=shape.cross, location=location.belowbar, color=color.gray, size=size.tiny)
