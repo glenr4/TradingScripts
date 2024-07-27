@@ -1,0 +1,34 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Close Beyond Last Opposite Candle", overlay = true)
+
+lookback = input.int(5, "Lookback")
+
+highestBearish = 0.0
+lowestBullish = 10000000.0
+
+isBullish(i) =>
+    close[i] > open[i]
+isBearish(i) =>
+    close[i] < open[i]
+
+// TODO need to only mark the first time it happens, not successive events
+
+for i = 1 to lookback
+    if(isBullish(i))
+        lowestBullish := low[i]
+        break
+
+for i = 1 to lookback
+    if(isBearish(i))
+        highestBearish := high[i]
+        break
+
+
+
+plotshape(isBullish(0) and close > highestBearish, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearish(0) and close < lowestBullish, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
+
+
