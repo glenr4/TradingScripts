@@ -8,13 +8,13 @@ lookback = input.int(5, "Lookback")
 
 highestBearish = 0.0
 lowestBullish = 10000000.0
+var isBullishClose = false
+var isBearishClose = false
 
 isBullish(i) =>
     close[i] > open[i]
 isBearish(i) =>
     close[i] < open[i]
-
-// TODO need to only mark the first time it happens, not successive events
 
 for i = 1 to lookback
     if(isBullish(i))
@@ -26,9 +26,12 @@ for i = 1 to lookback
         highestBearish := high[i]
         break
 
+isBullishClose := isBullish(0) and close > highestBearish
+isBearishClose := isBearish(0) and close < lowestBullish
 
 
-plotshape(isBullish(0) and close > highestBearish, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
-plotshape(isBearish(0) and close < lowestBullish, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
+// Only mark the first time it happens, not successive events looking at the same opposite candle
+plotshape(isBullishClose and not isBullishClose[1], style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearishClose and not isBearishClose[1], style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
 
 
