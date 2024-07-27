@@ -19,13 +19,14 @@ if(isBullish)
     // plotValue := close - high[1]
     plotValue := cumulativeBullish
     plotColour := color.green
-    cumulativeBearish := 0.0
+    // cumulativeBearish := 0.0
 else if(isBearish)
-    cumulativeBearish += close - low[1]
+    cumulativeBullish += close - low[1]
     // plotValue := close - low[1]
-    plotValue := cumulativeBearish
+    // plotValue := cumulativeBearish
+    plotValue := cumulativeBullish
     plotColour := color.red
-    cumulativeBullish := 0.0
+    // cumulativeBullish := 0.0
 else
     // plotValue := 0
     plotValue := plotValue[1]
