@@ -1,0 +1,25 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Close Beyond Previous Candle", overlay = false)
+
+
+
+isBullish = close > high[1]
+isBearish = close < low[1]
+
+plotValue = 0
+plotColour = color.gray
+
+if(isBullish)
+    plotValue := 1
+    plotColour := color.green
+else if(isBearish)
+    plotValue := -1
+    plotColour := color.red
+else
+    plotValue := 0
+    plotColour := color.gray
+
+plot(plotValue, color = plotColour, style = plot.style_histogram, linewidth = 3)
