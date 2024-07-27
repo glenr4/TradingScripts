@@ -11,30 +11,18 @@ isBearish = close < low[1]
 
 plotValue = 0.0
 plotColour = color.gray
-var cumulativeBullish = 0.0
-var cumulativeBearish = 0.0
+var cumulativeValue = 0.0
 
 if(isBullish)
-    cumulativeBullish += close - high[1]
-    // plotValue := close - high[1]
-    plotValue := cumulativeBullish
+    cumulativeValue += close - high[1]
+    plotValue := cumulativeValue
     plotColour := color.green
-    // cumulativeBearish := 0.0
 else if(isBearish)
-    cumulativeBullish += close - low[1]
-    // plotValue := close - low[1]
-    // plotValue := cumulativeBearish
-    plotValue := cumulativeBullish
+    cumulativeValue += close - low[1]
+    plotValue := cumulativeValue
     plotColour := color.red
-    // cumulativeBullish := 0.0
 else
-    // plotValue := 0
     plotValue := plotValue[1]
     plotColour := color.gray
-    // cumulativeBearish := 0.0
-    // cumulativeBullish := 0.0
 
-
-// plot(plotValue, color = plotColour, style = plot.style_histogram, linewidth = 3)
 plot(plotValue, color = plotColour, style = plot.style_line, linewidth = 3)
-hline(0.0, color = color.gray, linestyle = hline.style_dotted, linewidth = 2)
