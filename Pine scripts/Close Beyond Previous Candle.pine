@@ -9,17 +9,31 @@ indicator("Close Beyond Previous Candle", overlay = false)
 isBullish = close > high[1]
 isBearish = close < low[1]
 
-plotValue = 0
+plotValue = 0.0
 plotColour = color.gray
+var cumulativeBullish = 0.0
+var cumulativeBearish = 0.0
 
 if(isBullish)
-    plotValue := 1
+    cumulativeBullish += close - high[1]
+    // plotValue := close - high[1]
+    plotValue := cumulativeBullish
     plotColour := color.green
+    cumulativeBearish := 0.0
 else if(isBearish)
-    plotValue := -1
+    cumulativeBearish += close - low[1]
+    // plotValue := close - low[1]
+    plotValue := cumulativeBearish
     plotColour := color.red
+    cumulativeBullish := 0.0
 else
-    plotValue := 0
+    // plotValue := 0
+    plotValue := plotValue[1]
     plotColour := color.gray
+    // cumulativeBearish := 0.0
+    // cumulativeBullish := 0.0
 
-plot(plotValue, color = plotColour, style = plot.style_histogram, linewidth = 3)
+
+// plot(plotValue, color = plotColour, style = plot.style_histogram, linewidth = 3)
+plot(plotValue, color = plotColour, style = plot.style_line, linewidth = 3)
+hline(0.0, color = color.gray, linestyle = hline.style_dotted, linewidth = 2)
