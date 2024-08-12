@@ -1,0 +1,18 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Hi Vol Shadow", overlay = true, max_boxes_count = 500)
+
+len= input.int(title="Length", minval=1, defval=20, maxval=999, group= "Technical")
+volumeThreshold= input.float(title="Volume Threshold", minval=-2, defval=1.5, maxval=4, group= "Technical", step=0.1)
+shadowColour = input.color(#09fcdb, title="Shadow Colour", group= "Appearance")
+transparency = input(85, title="Shadow Transparency", group= "Appearance")
+shadowSize = input(100, title="Shadow Length", group= "Appearance")
+
+boxColour = color.new(shadowColour, transparency)
+
+sigmaVol = (volume-ta.sma(volume,len))/ta.stdev(volume, len)
+
+if sigmaVol >= volumeThreshold
+    box.new(bar_index, high, bar_index + shadowSize, low, bgcolor=boxColour, border_color=boxColour, border_width = 1)
