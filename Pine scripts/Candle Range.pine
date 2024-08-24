@@ -1,0 +1,12 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Candle Range", overlay = false)
+
+fastAveragePeriods = input.int(10, "Fast average period")
+slowAveragePeriods = input.int(100, "Slow average period")
+
+// plot(high - low, "Range", color = color.red)
+plot(ta.ema(high - low, fastAveragePeriods), "Fast Average", color = color.green)
+plot(ta.sma(high - low, slowAveragePeriods), "Slow Average", color = color.blue)
