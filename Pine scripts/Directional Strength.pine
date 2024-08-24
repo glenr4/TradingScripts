@@ -4,12 +4,11 @@
 //@version=5
 indicator("Directional Strength", overlay = false, precision = 5)
 
-lookback = input.int(5, "Candle lookback")
+lookback = input.int(20, "Candle lookback")
 
 highest = ta.highest(lookback)
 lowest = ta.lowest(lookback)
-average = ta.sma(close, lookback)
 
-plot((close - highest)/average, color = color.red, linewidth = 1)
-plot((close - lowest)/average, color = color.green, linewidth = 1)
+plot(close - highest, color = color.red, linewidth = 1)
+plot(close - lowest, color = color.green, linewidth = 1)
 hline(0.0, linestyle = hline.style_dashed, color = color.gray)
