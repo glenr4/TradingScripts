@@ -4,7 +4,7 @@
 // Plot over black and white candles and use Visual order -> Bring to front
 
 //@version=5
-indicator("Close Strength")
+indicator("Close Strength", overlay = true)
 
 isBullishClose = close >= high[1]
 isBearishClose = close <= low[1]
