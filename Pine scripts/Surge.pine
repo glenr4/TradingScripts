@@ -5,9 +5,25 @@
 indicator("Surge", overlay = true, max_boxes_count = 500)
 
 
-lookback = input.int(5, "Candle lookback")
-minSurgeUp = input.float(0.01000, "Surge minimum up", step=0.00100)
-minSurgeDown = input.float(0.01200, "Surge minimum down", step=0.00100)
+lookback = input.int(2, "Candle lookback")
+
+// Defaults for XAUUSD
+minSurge1m = input.float(1, title="1m", group = "Surge minimum", minval = 0, step = 1)
+minSurge5m = input.float(7, title="5m", group = "Surge minimum", minval = 0, step = 1)
+minSurge1h = input.float(10, title="1h", group = "Surge minimum", minval = 0, step = 1)
+minSurge1d = input.float(50, title="1D", group = "Surge minimum", minval = 0, step = 1)
+
+timeframeMinutes = timeframe.in_seconds()/60
+isTimeframeHours = timeframeMinutes >= 60
+
+minSurge = switch timeframeMinutes
+    1 => minSurge1m
+    5 => minSurge5m
+    60 => minSurge1h
+    86400 => minSurge1d
+    => minSurge1h
+
+
 bullishHighlightColour = input.color(color.new(#03f80c, 60), title="Bullish Highlight Colour")
 bearishHighlightColour = input.color(color.new(#f60404, 80), title="Bearish Highlight Colour")
 
@@ -19,8 +35,8 @@ highestCloseLookback = ta.highest(close, lookback+1)
 
 priceDiff = isBullish(0) ? close - lowestCloseLookback : highestCloseLookback - close
 
-isSurgeUp = priceDiff >= minSurgeUp and isBullish(0)
-isSurgeDown = priceDiff >= minSurgeDown and not isBullish(0)
+isSurgeUp = priceDiff >= minSurge and isBullish(0)
+isSurgeDown = priceDiff >= minSurge and not isBullish(0)
 
 if(isSurgeUp)
     box.new(bar_index - lookback, lowestCloseLookback, bar_index, highestCloseLookback, bgcolor=bullishHighlightColour, border_color = na)
