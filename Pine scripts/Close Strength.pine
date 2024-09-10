@@ -1,5 +1,6 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © glenrutherford4
+
 // Plot over black and white candles and use Visual order -> Bring to front
 
 //@version=5
@@ -8,11 +9,5 @@ indicator("Close Strength")
 isBullishClose = close >= high[1]
 isBearishClose = close <= low[1]
 
-// bodySize = math.abs(close - open)
-bodySize = math.abs(close - close[1])
-
-closeStrength = isBullishClose ? bodySize : (isBearishClose ? -1*bodySize : 0)
-plotColour = closeStrength > 0 ? color.green : color.red
-
-barColour = (closeStrength > 0 ? color.green : (closeStrength < 0 ? color.red : na))
+barColour = (isBullishClose ? color.green : (isBearishClose ? color.red : na))
 plotcandle(open, high, low, close, color = barColour, wickcolor = barColour, bordercolor = barColour)
