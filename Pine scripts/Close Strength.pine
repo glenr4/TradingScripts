@@ -28,19 +28,27 @@ if(isBullishClose)
 if(isBearishClose)
     bearishCount := bearishCount + 1
 
-// Three in a row changes from neutral to biased
-if(bullishCount == 3 and bullishCount[1] == 2)
+// Three in a row changes from opposite bias to neutral to biased
+if(bullishCount == 3 and bullishCount > bullishCount[1])
     isBullish := true
     bearishCount := 0
-if(bearishCount == 3 and bearishCount[1] == 2)
+if(bearishCount == 3 and bearishCount > bearishCount[1])
+    isBearish := true
+    bullishCount := 0
+
+// Two in a row from neutral to biased
+if(not isBullish and not isBearish and bullishCount == 2 and bullishCount > bullishCount[1])
+    isBullish := true
+    bearishCount := 0
+if(not isBullish and not isBearish and bearishCount == 2 and bearishCount > bearishCount[1])
     isBearish := true
     bullishCount := 0
 
 // Two in a row cancels the bias back to neutral
-if(isBearish and bullishCount == 2)
+if(isBearish and bullishCount == 2 and bullishCount > bullishCount[1])
     isBearish := false
     bearishCount := 0
-if(isBullish and bearishCount == 2)
+if(isBullish and bearishCount == 2 and bearishCount > bearishCount[1])
     isBullish := false
     bullishCount := 0
 
@@ -51,8 +59,8 @@ if(isBearish and bearishCount > bearishCount[1])
 if(isBullish and bullishCount > bullishCount[1])
     bearishCount := 0
 
-// plot(isBullish ? 1 : (isBearish ? -1 : 0))
-// plot(bullishCount, color = color.green)
-// plot(bearishCount, color = color.red)
+plot(isBullish ? 1 : (isBearish ? -1 : 0))
+plot(bullishCount, color = color.green)
+plot(bearishCount, color = color.red)
 
-bgcolor(isBullish ? color.green : (isBearish ? color.red : na))
+// bgcolor(isBullish ? color.green : (isBearish ? color.red : na))
