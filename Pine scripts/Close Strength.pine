@@ -4,10 +4,55 @@
 // Plot over black and white candles and use Visual order -> Bring to front
 
 //@version=5
-indicator("Close Strength", overlay = true)
+indicator("Close Strength") //, overlay = true)
 
 isBullishClose = close >= high[1]
 isBearishClose = close <= low[1]
 
-barColour = (isBullishClose ? color.green : (isBearishClose ? color.red : na))
-plotcandle(open, high, low, close, color = barColour, wickcolor = barColour, bordercolor = barColour)
+barColour = (isBullishClose ? color.new(#2962ff, 0) : (isBearishClose ? color.new(#ff9800, 0) : na))
+plotcandle(open, high, low, close, color = barColour, wickcolor = barColour, bordercolor = barColour, force_overlay = true)
+
+bullishOrBearish = isBullishClose ? 1 : (isBearishClose ? -1 : 0)
+bullishOrBearishColour = barColour
+
+// Three in a row gives direction, two in a row breaks the opposite direction back to neutral, the third then gives direction again
+// Single bars don't change anything
+var isBullish = false
+var isBearish = false
+
+var bullishCount = 0
+var bearishCount = 0
+
+if(isBullishClose)
+    bullishCount := bullishCount + 1
+if(isBearishClose)
+    bearishCount := bearishCount + 1
+
+// Three in a row changes from neutral to biased
+if(bullishCount == 3 and bullishCount[1] == 2)
+    isBullish := true
+    bearishCount := 0
+if(bearishCount == 3 and bearishCount[1] == 2)
+    isBearish := true
+    bullishCount := 0
+
+// Two in a row cancels the bias back to neutral
+if(isBearish and bullishCount == 2)
+    isBearish := false
+    bearishCount := 0
+if(isBullish and bearishCount == 2)
+    isBullish := false
+    bullishCount := 0
+
+// If biased and one in opposite direction, count but no action
+// If 1 count to opposite bias and then 1 more in biased direction, then clear opposite count
+if(isBearish and bearishCount > bearishCount[1])
+    bullishCount := 0
+if(isBullish and bullishCount > bullishCount[1])
+    bearishCount := 0
+
+// plot(isBullish ? 1 : (isBearish ? -1 : 0))
+// plot(bullishCount, color = color.green)
+// plot(bearishCount, color = color.red)
+
+bgcolor(isBullish ? color.green : (isBearish ? color.red : na))
