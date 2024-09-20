@@ -1,0 +1,21 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Directional Body Size")
+
+bodySize = math.abs(close - open)
+isBullish = close >= open
+var float lastBullishSize = na
+var float lastBearishSize = na
+
+bullishSize = isBullish ? bodySize : lastBullishSize
+bearishSize = not isBullish ? bodySize : lastBearishSize
+
+plot(bullishSize, "Bullish Body", color = color.green)
+plot(bearishSize, "Bearish Body", color = color.red)
+
+if(isBullish)
+    lastBullishSize := bullishSize
+if(not isBullish)
+    lastBearishSize := bearishSize
