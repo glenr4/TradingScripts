@@ -1,0 +1,35 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Trending Highs and Lows", overlay = true)
+
+isBullishReversal = close > close[1] and low < low[1]
+isBearishReversal = close < close[1] and  high > high[1]
+
+isBullish = high > high[1] and low > low[1] and not isBearishReversal
+isBearish = high < high[1] and low < low[1] and not isBullishReversal
+
+plotshape(isBullish, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearish, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+
+
+
+plotshape(isBullishReversal, style=shape.diamond, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearishReversal, style=shape.diamond, location=location.abovebar, color=color.red, size=size.tiny)
+
+// var directionalCount = 0
+
+// if(isBullish or isBullishReversal)
+//     if(directionalCount < 0)
+//         directionalCount := 1
+//     else
+//         directionalCount := directionalCount + 1
+// if(isBearish or isBearishReversal)
+//     if(directionalCount > 0)
+//         directionalCount := -1
+//     else
+//         directionalCount := directionalCount - 1
+
+
+// bgcolor(directionalCount > 0 ? color.new(color.green, 80) : color.new(color.red, 80))
