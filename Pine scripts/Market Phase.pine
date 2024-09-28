@@ -8,10 +8,10 @@ leftBars = input(3)
 rightBars=input(3)
 
 pivotHigh = ta.pivothigh(high, leftBars, rightBars)
-plotshape(pivotHigh, style=shape.triangleup, location=location.abovebar, color=color.blue, size=size.tiny, offset=-rightBars)
+// plotshape(pivotHigh, style=shape.triangleup, location=location.abovebar, color=color.blue, size=size.tiny, offset=-rightBars)
 
 pivotLow = ta.pivotlow(low, leftBars, rightBars)
-plotshape(pivotLow, style=shape.triangledown, location=location.belowbar, color=color.blue, size=size.tiny, offset=-rightBars)
+// plotshape(pivotLow, style=shape.triangledown, location=location.belowbar, color=color.blue, size=size.tiny, offset=-rightBars)
 
 
 //////////////////////////////
@@ -36,7 +36,6 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, in
                 
                 if _lineCrossed //or _currentBarExceedsLineLength
                     array.remove(_arrayOfLines, _i)
-                    log.info("Line crossed: " + str.tostring(_lineLevel))
                     crossedLineValues.push(_lineLevel)
             else
                 line.set_x2(_currentLine, line.get_x1(_currentLine) + fixedExtensionLength)
@@ -44,15 +43,23 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, in
     else
         na
 ////////////////////////////
+// Add to queue
+addToQueue(line[] _arrayOfLines, int arraySize, line newElement) =>
+    if _arrayOfLines.size() >= arraySize
+        _arrayOfLines.shift()   // remove oldest newElement
+    _arrayOfLines.push(newElement)
+
+////////////////////////////
 
 var line[] pivotHighs = array.new_line(0)
 var line[] pivotLows = array.new_line(0)
+int fixedArraySize = 5
 
 // Add lines 
 if(not na(pivotHigh))
-    array.push(pivotHighs, line.new(x1 = bar_index - rightBars, y1=high[rightBars], x2=bar_index + 20, y2= high[rightBars], style=line.style_solid, color=color.green, width = 2)) 
+    addToQueue(pivotHighs, fixedArraySize, line.new(x1 = bar_index - rightBars, y1=high[rightBars], x2=bar_index + 20, y2= high[rightBars], style=line.style_solid, color=color.green, width = 2)) 
 if(not na(pivotLow))
-    array.push(pivotLows, line.new(x1 = bar_index - rightBars, y1=low[rightBars], x2=bar_index + 20, y2= low[rightBars], style=line.style_solid, color=color.red, width = 2)) 
+    addToQueue(pivotLows, fixedArraySize, line.new(x1 = bar_index - rightBars, y1=low[rightBars], x2=bar_index + 20, y2= low[rightBars], style=line.style_solid, color=color.red, width = 2)) 
 
 // Adjust line length of all lines
 pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, true, 200)
@@ -61,9 +68,9 @@ pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, true, 200)
 if not na(pivotHighsCrossed)
     count = array.size(pivotHighsCrossed)
     if count > 0
-        label.new(bar_index, high, yloc=yloc.abovebar, text = str.tostring(count), color = color.blue, textcolor = color.white)
+        label.new(bar_index, high, yloc=yloc.abovebar, text = str.tostring(count), color = color.green, textcolor = color.white)
 
 if not na(pivotLowsCrossed)
     count = array.size(pivotLowsCrossed)
     if count > 0
-        label.new(bar_index, low, yloc=yloc.belowbar, text = str.tostring(count), color = color.blue, textcolor = color.white, style = label.style_label_up)
+        label.new(bar_index, low, yloc=yloc.belowbar, text = str.tostring(count), color = color.red, textcolor = color.white, style = label.style_label_up)
