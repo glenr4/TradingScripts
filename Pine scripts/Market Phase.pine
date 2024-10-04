@@ -4,8 +4,9 @@
 //@version=5
 indicator("Market Phase", overlay = true, max_lines_count = 500)
 
-leftBars = input(3)
-rightBars=input(3)
+leftBars = input(3, "Bars to left of pivot peak")
+rightBars = input(3, "Bars to left of pivot peak")
+fixedArraySize = input(5, "Number of pivot lines to extend")
 
 pivotHigh = ta.pivothigh(high, leftBars, rightBars)
 // plotshape(pivotHigh, style=shape.triangleup, location=location.abovebar, color=color.blue, size=size.tiny, offset=-rightBars)
@@ -53,7 +54,6 @@ addToQueue(line[] _arrayOfLines, int arraySize, line newElement) =>
 
 var line[] pivotHighs = array.new_line(0)
 var line[] pivotLows = array.new_line(0)
-int fixedArraySize = 5
 
 // Add lines 
 if(not na(pivotHigh))

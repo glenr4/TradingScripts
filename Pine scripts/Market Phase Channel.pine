@@ -1,0 +1,41 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Market Phase Channel", overlay = true, max_lines_count = 500)
+
+leftBars = input(3)
+rightBars=input(3)
+
+pivotHigh = ta.pivothigh(high, leftBars, rightBars)
+pivotLow = ta.pivotlow(low, leftBars, rightBars)
+
+type point
+    int x
+    float y
+
+var point lastPivotHighPoint = na
+var point lastPivotLowPoint = na
+
+var bool isPivotHighIncreasing = false
+var bool isPivotLowIncreasing = false
+
+// Add pivots 
+if(not na(pivotHigh))
+    latestPoint = point.new(bar_index - rightBars, pivotHigh)
+    if(not na(lastPivotHighPoint))
+        line.new(lastPivotHighPoint.x, lastPivotHighPoint.y, latestPoint.x, latestPoint.y, color = color.green, width = 2)
+        isPivotHighIncreasing := latestPoint.y > lastPivotHighPoint.y
+
+    lastPivotHighPoint := latestPoint
+
+if(not na(pivotLow))
+    latestPoint = point.new(bar_index - rightBars, pivotLow)
+    if(not na(lastPivotLowPoint))
+        line.new(lastPivotLowPoint.x, lastPivotLowPoint.y, latestPoint.x, latestPoint.y, color = color.red, width = 2)
+        isPivotLowIncreasing := latestPoint.y > lastPivotLowPoint.y
+
+    lastPivotLowPoint := latestPoint
+
+bgcolor(isPivotHighIncreasing and isPivotLowIncreasing ? color.new(color.green, 80) : na)
+bgcolor(not isPivotHighIncreasing and not isPivotLowIncreasing ? color.new(color.red, 80) : na)
