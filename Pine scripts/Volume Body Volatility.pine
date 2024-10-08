@@ -1,0 +1,16 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Volume Body Volatility")
+
+bodySize = math.abs(close - open)
+volumeBody = volume * bodySize
+
+hline(0, color = color.gray, linestyle = hline.style_dashed)
+
+volumeBodyUp = close > open ? (close - open)*volume : 0
+volumeBodyDown = close < open ? (close - open)*volume : 0
+
+plot(volumeBodyUp, color = color.green)
+plot(volumeBodyDown, color = color.red)

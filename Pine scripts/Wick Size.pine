@@ -1,0 +1,16 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Wick Size", overlay = false)
+
+maPeriods = input.int(100, "Moving average periods")
+maMultiplier = input.float(2, "Moving average multiplier")
+
+isBullish = close >= open
+upperWickSize = isBullish ? high - close : high - open
+lowerWickSize = isBullish ? open - low : close - low
+largestWick = upperWickSize >= lowerWickSize ? upperWickSize : lowerWickSize
+
+plot(largestWick, color = color.green)
+plot(maMultiplier * ta.ema(largestWick, maPeriods))
