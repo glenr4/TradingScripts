@@ -1,0 +1,21 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Volume Body Strength")
+
+maMultiplier = input.float(1, "Moving average multiplier")
+
+bodySize = math.abs(close - open)
+volumeBody = volume * bodySize
+
+hline(0, color = color.gray, linestyle = hline.style_dashed)
+
+volumeBodyUp = close > open ? (close - open)*volume : 0
+volumeBodyDown = close < open ? (close - open)*volume : 0
+
+plot(volumeBodyUp, "Upward strength", color = color.green)
+plot(volumeBodyDown, "Downward strength", color = color.red)
+
+plot(maMultiplier * ta.ema(volumeBodyUp, 100), "Average upward strength", color = color.blue)
+plot(maMultiplier * ta.ema(volumeBodyDown, 100), "Average downward strength", color = color.blue)
