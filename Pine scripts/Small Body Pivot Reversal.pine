@@ -1,0 +1,46 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Small Body Pivot Reversal", overlay = true, max_labels_count = 500, max_boxes_count = 500)
+
+pivotBarLength = input(2, title="Bars either side of pivot", group= "Technical")
+maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "Technical", step=0.1)
+
+isBullish(int offset) =>
+    close[offset] >= open[offset]
+
+hasSmallBody(int offset) =>
+    fullRange = high[offset] - low[offset]
+    body = math.abs(open[offset] - close[offset])
+
+    body < fullRange * maxBodyProportion    // return value
+
+addLabel(int offset, bool aboveBar) => 
+    label.new(bar_index - offset, high[pivotBarLength], yloc=(aboveBar ? yloc.abovebar : yloc.belowbar), style=label.style_diamond, size=size.tiny)
+
+upperWickLarger(int offset) =>
+    upperWick = isBullish(offset) ? high[offset] - close[offset] : high[offset] - open[offset]
+    lowerWick = isBullish(offset) ? open[offset] - low[offset] : close[offset] - low[offset]
+
+    upperWick >= lowerWick
+
+// Find pivot outside `if` block because needs to run on every bar
+pivotHigh = ta.pivothigh(pivotBarLength, pivotBarLength)
+pivotLow = ta.pivotlow(pivotBarLength, pivotBarLength)
+
+// Detect a new pivot
+newPivotHigh = not na(pivotHigh)
+newPivotLow = not na(pivotLow)
+
+if(newPivotHigh)
+    if(hasSmallBody(pivotBarLength))
+        if(upperWickLarger(pivotBarLength))
+            if(close[pivotBarLength - 1] < close[pivotBarLength])
+                addLabel(pivotBarLength, true)
+
+if(newPivotLow)
+    if(hasSmallBody(pivotBarLength))
+        if(not upperWickLarger(pivotBarLength))
+            if(close[pivotBarLength - 1] > close[pivotBarLength])
+                addLabel(pivotBarLength, false)
