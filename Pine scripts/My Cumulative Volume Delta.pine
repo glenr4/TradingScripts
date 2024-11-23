@@ -1,0 +1,23 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("My Cumulative Volume Delta")
+
+import TradingView/ta/8
+
+isBullish(i) =>
+    close[i] > open[i]
+
+[openVolume, maxVolume, minVolume, lastVolume] = ta.requestVolumeDelta("1", "1W")
+
+isBullishCVD(i) =>
+    lastVolume[i] > openVolume[i]
+
+plotcandle(openVolume, maxVolume, minVolume, lastVolume, "My CVD", lastVolume >= openVolume ? color.green : color.red)
+
+isBullishDivergence = isBullish(0) and not isBullishCVD(0)
+isBearishDivergence = not isBullish(0) and isBullishCVD(0)
+
+plotshape(isBullishDivergence, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny, force_overlay = true)
+plotshape(isBearishDivergence, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny, force_overlay = true)
