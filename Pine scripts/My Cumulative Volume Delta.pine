@@ -28,19 +28,10 @@ isLargeBearish = not isBullishCVD and volCandleBody >= 2* avgCandleBody
 if (isLargeBearish)
     line.new(x1 = bar_index, y1=high, x2=bar_index + 20, y2= high, style=line.style_dashed, color=color.red, width = 2, force_overlay = true)
 
-
-var float lastBullishSize = na
-var float lastBearishSize = na
-
-bullishSize = isBullishCVD ? volCandleBody : lastBullishSize
-bearishSize = not isBullishCVD ? volCandleBody : lastBearishSize
-
-plot(bullishSize, "Bullish Body", color = color.green)
-plot(bearishSize, "Bearish Body", color = color.red)
-
-if(isBullishCVD)
-    lastBullishSize := bullishSize
-if(not isBullishCVD)
-    lastBearishSize := bearishSize
-
 hline(0, color = #787b864f, linestyle = hline.style_solid, linewidth = 2)
+
+bullishSize = isBullishCVD ? volCandleBody : 0
+bearishSize = not isBullishCVD ? volCandleBody : 0
+
+plot(bullishSize, "Bullish Body", color = color.green, style = plot.style_histogram, linewidth = 5)
+plot(bearishSize, "Bearish Body", color = color.red, style = plot.style_histogram, linewidth = 5)
