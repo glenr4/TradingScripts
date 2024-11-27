@@ -6,17 +6,8 @@ indicator("My Cumulative Volume Delta", max_lines_count = 500)
 
 import TradingView/ta/8
 
-// percentCloseThreshold = input.float(1.0, "Percent close threshold")
-closeThreshold = input.float(500, "CVD close threshold")
-minVolCandleSize = input.float(1000, "Minimum CVD candle size")
-
-isBullish(i) =>
-    close[i] > open[i]
-
 [openVolume, maxVolume, minVolume, lastVolume] = ta.requestVolumeDelta("1", "1M")
 
-// isBullishCVD(i) =>
-//     lastVolume[i] > openVolume[i]
 isBullishCVD = lastVolume > openVolume
 
 plotcandle(openVolume, maxVolume, minVolume, lastVolume, "My CVD", lastVolume >= openVolume ? color.green : color.red)
@@ -26,49 +17,16 @@ volCandleBody = math.abs (openVolume - lastVolume)
 
 avgCandleBody = ta.sma(volCandleBody, 10)
 
-// Divergence
-// isBullishDivergence = isBullish(0) and not isBullishCVD(0)// and volCandleBody >= minVolCandleSize
-// isBearishDivergence = not isBullish(0) and isBullishCVD(0)// and volCandleBody >= minVolCandleSize
-
-// plotshape(isBullishDivergence, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny, force_overlay = true)
-// plotshape(isBearishDivergence, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny, force_overlay = true)
-
-// strongBullishClose = math.abs(maxVolume - lastVolume)/math.abs(maxVolume - minVolume)*100
-// strongBearishClose = math.abs(minVolume - lastVolume)/math.abs(maxVolume - minVolume)*100
-
-//isStrongBullishClose = (strongBullishClose <= percentCloseThreshold)
-//isStrongBearishClose = (strongBearishClose <= percentCloseThreshold)
-
-
-// Strong close
-// 500 is for 4h chart
-// isStrongBullishClose = math.abs(maxVolume - lastVolume) <= closeThreshold and volCandleBody >= minVolCandleSize
-// isStrongBearishClose = math.abs(minVolume - lastVolume) <= closeThreshold and volCandleBody >= minVolCandleSize
-
-// plot(math.abs(maxVolume - lastVolume), "Bullish close", color.green)
-// plot(math.abs(minVolume - lastVolume), "Bearish close", color.red)
-// plot(volCandleRange, "Range", color.blue)
-// plot(volCandleBody, "Body", color.gray)
-
-// plotshape(isStrongBullishClose, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny, force_overlay = true)
-// plotshape(isStrongBearishClose, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny, force_overlay = true)
-
-// if(isStrongBullishClose)
-//     line.new(x1 = bar_index, y1=low, x2=bar_index + 20, y2= low, style=line.style_solid, color=color.green, width = 2, force_overlay = true)
-
-// if(isStrongBearishClose)
-//     line.new(x1 = bar_index, y1=high, x2=bar_index + 20, y2= high, style=line.style_solid, color=color.red, width = 2, force_overlay = true)
-
 // Large candle
 isLargeBullish = isBullishCVD and volCandleBody >= 2* avgCandleBody 
 
 if (isLargeBullish)
-    line.new(x1 = bar_index, y1=low, x2=bar_index + 20, y2= low, style=line.style_solid, color=color.green, width = 2, force_overlay = true)
+    line.new(x1 = bar_index, y1=low, x2=bar_index + 20, y2= low, style=line.style_dashed, color=color.green, width = 2, force_overlay = true)
 
 isLargeBearish = not isBullishCVD and volCandleBody >= 2* avgCandleBody 
 
 if (isLargeBearish)
-    line.new(x1 = bar_index, y1=high, x2=bar_index + 20, y2= high, style=line.style_solid, color=color.red, width = 2, force_overlay = true)
+    line.new(x1 = bar_index, y1=high, x2=bar_index + 20, y2= high, style=line.style_dashed, color=color.red, width = 2, force_overlay = true)
 
 
 var float lastBullishSize = na
