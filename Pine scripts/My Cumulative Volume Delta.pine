@@ -6,7 +6,10 @@ indicator("My Cumulative Volume Delta", max_lines_count = 500)
 
 import TradingView/ta/8
 
-[openVolume, maxVolume, minVolume, lastVolume] = ta.requestVolumeDelta("1", "1M")
+lowerTimeFrame = input.string("1", "Lower timeframe (min)",["1", "2"])
+cumulativePeriod = input.string("1W", "Cumulative period", ["1D", "1W", "1M"])
+
+[openVolume, maxVolume, minVolume, lastVolume] = ta.requestVolumeDelta(lowerTimeFrame, cumulativePeriod)
 
 isBullishCVD = lastVolume > openVolume
 
