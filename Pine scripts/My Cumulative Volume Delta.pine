@@ -38,3 +38,6 @@ bearishSize = not isBullishCVD ? volCandleBody : 0
 
 plot(bullishSize, "Bullish Body", color = color.green, style = plot.style_histogram, linewidth = 5)
 plot(bearishSize, "Bearish Body", color = color.red, style = plot.style_histogram, linewidth = 5)
+
+alertcondition(isLargeBullish, 'Large bullish CVD', 'Large bullish CVD')
+alertcondition(isLargeBearish, 'Large bearish CVD', 'Large bearish CVD')
