@@ -8,10 +8,13 @@ import TradingView/ta/8
 
 lowerTimeFrame = input.string("1", "Lower timeframe (min)",["1", "2"])
 cumulativePeriod = input.string("1W", "Cumulative period", ["1D", "1W", "1M"])
+isColourByPriceCandle = input.bool(true, "Colour by price candle direction")
+
+isBullish = close >= open
 
 [openVolume, maxVolume, minVolume, lastVolume] = ta.requestVolumeDelta(lowerTimeFrame, cumulativePeriod)
 
-isBullishCVD = lastVolume > openVolume
+isBullishCVD = lastVolume >= openVolume
 
 plotcandle(openVolume, maxVolume, minVolume, lastVolume, "My CVD", lastVolume >= openVolume ? color.green : color.red)
 
@@ -33,11 +36,14 @@ if (isLargeBearish)
 
 hline(0, color = #787b864f, linestyle = hline.style_solid, linewidth = 2)
 
-bullishSize = isBullishCVD ? volCandleBody : 0
-bearishSize = not isBullishCVD ? volCandleBody : 0
+cvdBodySizeColour = color.red
 
-plot(bullishSize, "Bullish Body", color = color.green, style = plot.style_histogram, linewidth = 5)
-plot(bearishSize, "Bearish Body", color = color.red, style = plot.style_histogram, linewidth = 5)
+if isColourByPriceCandle
+    cvdBodySizeColour := isBullish ? color.green : color.red
+else
+    cvdBodySizeColour := isBullishCVD ? color.green : color.red
+
+plot(volCandleBody, "CVD body size", color = cvdBodySizeColour, style = plot.style_histogram, linewidth = 5)
 
 alertcondition(isLargeBullish, 'Large bullish CVD', 'Large bullish CVD')
 alertcondition(isLargeBearish, 'Large bearish CVD', 'Large bearish CVD')
