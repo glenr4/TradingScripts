@@ -1,0 +1,18 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("Volume Spike", overlay = true, max_lines_count = 500)
+
+lookbackBars = input.int(5, "Lookback candle count")
+lineLength = 20
+
+isBullish = close >= open
+isVolSpike = ta.highest(volume, lookbackBars) == volume
+
+if (isVolSpike)
+    if(isBullish)
+        line.new(x1 = bar_index, y1=low, x2=bar_index + lineLength, y2= low, style=line.style_dashed, color=color.green, width = 2)
+    else
+        line.new(x1 = bar_index, y1=high, x2=bar_index + lineLength, y2= high, style=line.style_dashed, color=color.red, width = 2)
+
