@@ -4,9 +4,9 @@
 //@version=5
 indicator("Wick Pivots", overlay = true, max_labels_count = 500, max_boxes_count = 500)
 
-pivotBarLength = input(2, title="Bars either side of pivot", group= "Technical")
+pivotBarLength = input(5, title="Bars either side of pivot", group= "Technical")
 maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "Technical", step=0.1)
-shadowSize = input(100, title="Shadow Length", group= "Appearance")
+shadowSize = input(50, title="Shadow Length", group= "Appearance")
 transparency = input(85, title="Shadow Transparency", group= "Appearance")
 
 isBullish(int offset) =>
@@ -60,3 +60,6 @@ if(newPivotLow)
     if(not upperWickLarger(pivotBarLength))
         addShadow(pivotBarLength, true)
 
+// Because there is such a large delay to wait for a pivot to form
+// need to save the pivot wicks in an array and when a new wick forms
+// check if it rejects out of a previous pivot wick
