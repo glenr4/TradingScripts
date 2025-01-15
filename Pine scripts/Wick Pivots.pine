@@ -1,0 +1,62 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Wick Pivots", overlay = true, max_labels_count = 500, max_boxes_count = 500)
+
+pivotBarLength = input(2, title="Bars either side of pivot", group= "Technical")
+maxBodyProportion = input.float(0.3, title="Maximum body proportion", group= "Technical", step=0.1)
+shadowSize = input(100, title="Shadow Length", group= "Appearance")
+transparency = input(85, title="Shadow Transparency", group= "Appearance")
+
+isBullish(int offset) =>
+    close[offset] >= open[offset]
+
+hasSmallBody(int offset) =>
+    fullRange = high[offset] - low[offset]
+    body = math.abs(open[offset] - close[offset])
+
+    body < fullRange * maxBodyProportion    // return value
+
+addLabel(int offset, bool aboveBar) => 
+    label.new(bar_index - offset, high[pivotBarLength], yloc=(aboveBar ? yloc.abovebar : yloc.belowbar), style=label.style_diamond, size=size.tiny)
+
+upperWickLarger(int offset) =>
+    upperWick = isBullish(offset) ? high[offset] - close[offset] : high[offset] - open[offset]
+    lowerWick = isBullish(offset) ? open[offset] - low[offset] : close[offset] - low[offset]
+
+    upperWick >= lowerWick
+
+addShadow(offset, isBullishWick) =>
+    isBearishWick = not isBullishWick
+
+    // Bearish wick
+    BearishWickTop = isBearishWick ? high[offset] : na
+    BearishWickBottom = isBearishWick ? (isBullish(offset) ? close[offset] : open[offset]) : na
+
+    bearishBoxColour = color.new(color.red, transparency)
+    box.new(bar_index - offset, BearishWickTop, bar_index + shadowSize - offset, BearishWickBottom, bgcolor=bearishBoxColour, border_color=bearishBoxColour, border_width = 1)
+
+    // Bullish wick
+    BullishWickTop = isBullishWick ? (isBullish(offset) ? open[offset] : close[offset]) : na
+    BullishWickBottom = isBullishWick ? low[offset] : na
+
+    bullishBoxColour = color.new(color.green, transparency)
+    box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=bullishBoxColour, border_color=bullishBoxColour, border_width = 1)
+
+// Find pivot outside `if` block because needs to run on every bar
+pivotHigh = ta.pivothigh(pivotBarLength, pivotBarLength)
+pivotLow = ta.pivotlow(pivotBarLength, pivotBarLength)
+
+// Detect a new pivot
+newPivotHigh = not na(pivotHigh)
+newPivotLow = not na(pivotLow)
+
+if(newPivotHigh)
+    if(upperWickLarger(pivotBarLength))
+        addShadow(pivotBarLength, false)
+
+if(newPivotLow)
+    if(not upperWickLarger(pivotBarLength))
+        addShadow(pivotBarLength, true)
+
