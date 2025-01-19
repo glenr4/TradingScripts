@@ -2,7 +2,9 @@
 
 //@version=5
 strategy('Break HH/LL with FVG Pullback', overlay =  true, max_bars_back = 500, max_lines_count = 500, max_labels_count = 500)
-// Entry at top of FVG, stop loss at the bottom of FVG
+// Long: Entry at top of FVG, stop loss at the bottom of FVG
+// Short: Entry at bottom of FVG, stop loss at the top of FVG
+// Single contract 1:3 RR
 
 // Zig zag code
 // indicator('Simple Zigzag UDT', 'SZU', true, max_bars_back = 500, max_lines_count = 500, max_labels_count = 500)
@@ -283,12 +285,14 @@ buyEntry(float entry, float stopLoss) =>
         strategy.cancel_all()
         strategy.close("Sell")
 
-        // riskPoints = 1.5
+        minRiskPoints = 1.5
         r2r = 3
         qty = 1
         lineLength = 30
 
-        riskPoints = entry - stopLoss
+        riskPoints = math.abs(entry - stopLoss)
+        // if(riskPoints < minRiskPoints)
+        //     riskPoints := minRiskPoints
 
         takeProfitLevel = entry + riskPoints * r2r
         stopLossLevel = entry - riskPoints
@@ -302,24 +306,28 @@ buyEntry(float entry, float stopLoss) =>
         line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
         line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
 
-sellEntry() =>
+sellEntry(float entry, float stopLoss) =>
     if (not isShort )
         strategy.cancel_all()
         strategy.close("Buy")
 
-        riskPoints = 1.5
+        minRiskPoints = 1.5
         r2r = 3
         qty = 1
         lineLength = 30
 
-        takeProfitLevel = close - (riskPoints * r2r)
-        stopLossLevel = close + riskPoints
-        strategy.entry("Sell", strategy.short, qty)
+        riskPoints = math.abs(entry - stopLoss)
+        // if(riskPoints < minRiskPoints)
+        //     riskPoints := minRiskPoints
+
+        takeProfitLevel = entry - (riskPoints * r2r)
+        stopLossLevel = entry + riskPoints
+        strategy.entry("Sell", strategy.short, qty, limit = entry, stop = entry)
         strategy.order("Sell take profit", strategy.short, qty, limit =  takeProfitLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
         strategy.order("Sell stop loss", strategy.short, qty, stop =  stopLossLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
         log.info("Sell")
 
-        line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.blue)
+        line.new(x1=bar_index, y1=entry, x2=bar_index+lineLength, y2=entry, color= color.blue)
         line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
         line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
 
@@ -352,7 +360,7 @@ if(not na(lastLL) and not na(lastBearishFvg))
 // Sell entry
 if(not na(bearishEntryLimit))
     if(high >= bearishEntryLimit)
-        // sellEntry()
+        sellEntry(lastBearishFvg.limit, lastBearishFvg.fvgBox.get_top())
         bearishEntryLimit := na
         lastBearishFvg := na
 
