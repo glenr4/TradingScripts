@@ -278,7 +278,7 @@ isInTrade = strategy.position_size != 0
 isLong = strategy.position_size > 0
 isShort = strategy.position_size < 0
 
-float posSize = 10
+// float posSize = 10
 
 buyEntry(float entry, float stopLoss) =>
     var int longTradeCount = 0
@@ -292,26 +292,23 @@ buyEntry(float entry, float stopLoss) =>
             longTradeCount := longTradeCount+1
             longTradeCountText = str.tostring(longTradeCount)
 
-            minRiskPoints = 1.5
+            minRiskPoints = 1.5 // suitable for MGC 5min chart - stops the position size from being too big
             r2r = 3
-            // qty = 1
             lineLength = 30
 
             riskPoints = math.abs(entry - stopLoss)
-            // if(riskPoints < minRiskPoints)
-            //     riskPoints := minRiskPoints
+            if(riskPoints < minRiskPoints)
+                riskPoints := minRiskPoints
 
 
             takeProfitLevel = entry + riskPoints * r2r
             stopLossLevel = entry - riskPoints
 
-            // Position sizing is done in the strategy settings in TradingView
-            // r = 500 // US$500
-            // contractMultiplier = 10.0 // MGC
-            // maxPosSize = 20
-            // posSize = math.round(r / riskPoints * contractMultiplier, 0)
-            // if(posSize > maxPosSize)
-            //     posSize := maxPosSize
+            // Position sizing 
+            r = 500 // US$500
+            contractMultiplier = 10.0 // MGC
+            maxPosSize = 20
+            posSize = math.round(r / (riskPoints * contractMultiplier), 0)
 
             strategy.entry("Buy: "+longTradeCountText, strategy.long, posSize)  //, stop = entry) // , limit = entry
             strategy.order("Buy take profit: "+longTradeCountText, strategy.short, posSize, limit =  takeProfitLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
@@ -343,6 +340,7 @@ sellEntry(float entry, float stopLoss) =>
 
             takeProfitLevel = entry - (riskPoints * r2r)
             stopLossLevel = entry + riskPoints
+
             strategy.entry("Sell", strategy.short, qty, stop = entry)   // limit = entry,
             strategy.order("Sell take profit", strategy.long, qty, limit =  takeProfitLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
             strategy.order("Sell stop loss", strategy.long, qty, stop =  stopLossLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
@@ -367,16 +365,9 @@ if(not na(lastHH) and not na(lastBullishFvg))   // Have a previous HH and a bull
         lastBearishFvg := na
 
 // Buy entry
-var float bullishBracketTpLevel = 0.0
-var float bullishBracketSlLevel = 0.0
-var string longTradeCountText = "init"
-
 if(not na(bullishEntryLimit))
     if(low <= bullishEntryLimit)
-        [tempBullishBracketTpLevel, tempBullishBracketSlLevel, tempLongTradeCountText] = buyEntry(lastBullishFvg.limit, lastBullishFvg.barLow)  
-        bullishBracketTpLevel := tempBullishBracketTpLevel
-        bullishBracketSlLevel := tempBullishBracketSlLevel
-        longTradeCountText := tempLongTradeCountText
+        buyEntry(lastBullishFvg.limit, lastBullishFvg.barLow)  
         bullishEntryLimit := na
         lastBullishFvg := na
 
