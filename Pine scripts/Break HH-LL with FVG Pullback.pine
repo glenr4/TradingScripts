@@ -2,7 +2,7 @@
 
 //@version=5
 strategy('Break HH/LL with FVG Pullback', overlay =  true, max_bars_back = 500, max_lines_count = 500, max_labels_count = 500, process_orders_on_close = true)  //, calc_on_order_fills = true)  //, default_qty_type = strategy.cash, default_qty_value = 500)
-// Entry at top of FVG, stop loss at the bottom of FVG
+// process_orders_on_close: instead of the open of the next bar
 
 // Zig zag code
 // indicator('Simple Zigzag UDT', 'SZU', true, max_bars_back = 500, max_lines_count = 500, max_labels_count = 500)
