@@ -1,0 +1,415 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+
+//@version=5
+strategy('Break HH/LL with FVG Pullback', overlay =  true, max_bars_back = 500, max_lines_count = 500, max_labels_count = 500)
+// Entry at top of FVG, stop loss at the bottom of FVG
+
+// Zig zag code
+// indicator('Simple Zigzag UDT', 'SZU', true, max_bars_back = 500, max_lines_count = 500, max_labels_count = 500)
+// © RozaniGhani-RG
+
+// 0. Inputs
+// 1. Types
+// 2. Switches
+// 3. Variables and arrays
+// 4. Custom Functions
+// 5. Execution
+// 6. Constructs
+
+//#region ———————————————————— 0. Inputs
+T0 = 'Zigzag values\nDefault : 14\nMin : 2\nMax : 50'
+T1 = 'Short\nExample : L or LL\nLong\nExample : Low or Lower Low'
+T2 = 'Constrast : Constrast color of chart background\nCustom : Input color\nNone : Color follow Trend Color'
+T3 = 'Small font size recommended for mobile app or multiple layout'
+T4 = 'Default\nStyle : Solid\nWidth : 4'
+length       = input.int(            14,     'Length', minval = 2, maxval = 50, tooltip = T0)
+colorUp      = input.color(color.lime,'Trend Color', inline = '0')
+colorDn      = input.color( color.red,           '', inline = '0')
+showLabel    = input.bool(         true,      'Label', group = 'Show / hide', inline = '1')
+showLine     = input.bool(         true,       'Line', group = 'Show / hide', inline = '1')
+displayLabel = input.string(     'HHLL',       'Text', group = 'Label', inline = '2', options = ['HHLL', 'HL'])
+nameHL       = input.string(    'Short',           '', group = 'Label', inline = '2', options = ['Short', 'Long'], tooltip = T1)
+colorLabel   = input.string(    'Trend',      'Color', group = 'Label', inline = '3', options = ['Contrast', 'Custom', 'Trend'])
+customLabel  = input.color(color.blue,           '', group = 'Label', inline = '3', tooltip = T2)
+sizeLabel    = input.string(   'normal',       'Size', group = 'Label', inline = '4', options = ['tiny',  'small', 'normal', 'large', 'huge'], tooltip = T3)
+lineType     = input.string(    'solid',    'Display', group =  'Line', inline = '5', options = ['dash', 'dot', 'solid', 'arrow right', 'arrow left'])
+width        = input.int(             4,           '', group =  'Line', inline = '5', minval = 1, maxval = 4, tooltip = T4)
+colorLine    = input.string(    'Trend',      'Color', group =  'Line', inline = '6', options = ['Contrast', 'Custom', 'Trend'])
+customLine   = input.color(color.blue,           '', group =  'Line', inline = '6', tooltip = T2)
+//#endregion
+
+//#region ———————————————————— 1. Types
+// @type        Used for label
+// @field Hi    Float value of high
+// @field Lo    Float value of low
+type HL
+    string      Hi = na
+    string      Lo = na
+
+// @type        Used for point especially for array
+// @field x     int value for bar_index   
+// @field y     float value for price
+// @field sty   label style
+// @field col   color for text label
+// @field str   high or low string
+type point
+    int          x = na
+    float        y = na
+    string     sty = na
+    color      col = na
+    string     str = na
+
+// @type          Used for initial setup
+// @field hi      high value
+// @field lo      low value
+// @field colorHi color for high value
+// @field colorLo color for low value
+// @field strHi   string for high value
+// @field strLo   string for low value
+type startUp
+    float       hi = na
+    float       lo = na
+    color  colorHi = na
+    color  colorLo = na
+    string   strHi = na
+    string   strLo = na
+//#endregion
+
+//#region ———————————————————— 2. Switches
+[H, L]            = switch nameHL
+    'Short'       => [   'H',   'L']
+    'Long'        => ['HIGH', 'LOW']
+[Hi, Lo]          = switch nameHL
+    'Short'       => [       'H',       'L']
+    'Long'        => ['HIGHER\n', 'LOWER\n']
+switchLine        = switch lineType
+    'dash'        => line.style_dashed
+    'dot'         => line.style_dotted
+    'solid'       => line.style_solid
+    'arrow right' => line.style_arrow_right
+    'arrow left'  => line.style_arrow_left
+switchLabelColor  = switch colorLabel
+    'Contrast'    => chart.fg_color
+    'Custom'      => customLabel
+switchLineColor   = switch colorLine
+    'Contrast'    => chart.fg_color
+    'Custom'      => customLine
+//#endregion
+
+//#region ———————————————————— 3. Variables and arrays
+float ph   = na,  ph := ta.highestbars(high, length) == 0 ? high : na
+float pl   = na,  pl := ta.lowestbars(  low, length) == 0 ?  low : na  
+var  dir   =  0, dir := ph and na(pl) ? 1 : pl and na(ph) ? -1 : dir
+var zigzag = array.new<point>(0)
+oldzigzag  = zigzag.copy()
+dirchanged = ta.change(dir)
+hiLo       = HL.new(Hi, Lo)
+varSetup   = startUp.new(ph, pl, colorUp, colorDn, H, L)
+//#endregion
+
+//#region ———————————————————— 4. Custom Functions
+// @function         variable for point
+// @param   setup    type containing ternary conditional operator
+// @returns newPoint to be used later in initialize
+method dirVariables(startUp setup = na) =>
+    var point newPoint = na 
+    x   = bar_index
+    y   = dir == 1 ?               setup.hi : setup.lo
+    sty = dir == 1 ? label.style_label_down : label.style_label_up
+    col = dir == 1 ?          setup.colorHi : setup.colorLo
+    str = dir == 1 ?            setup.strHi : setup.strLo  
+    newPoint  := point.new(x, y, sty, col, str)
+    newPoint
+
+// @function         initialize zigzag array
+// @param   setup    type containing ternary conditional operator
+// @param   maxSize  maximum array size
+// @returns zigzag   array after cleanup
+method initialize(point[] zigzag = na, startUp setup = na, int maxSize = 10)=>
+    newPoint = setup.dirVariables()
+    zigzag.unshift(newPoint)
+    if zigzag.size() > maxSize
+        zigzag.pop()
+
+// @function         update zigzag array
+// @param   setup    type containing ternary conditional operator
+// @param   maxSize  maximum array size
+// @param   dir      direction value
+// @returns zigzag   array after cleanup   
+method update(point[] zigzag = na, startUp setup = na, maxSize = 10, int dir = na)=>
+    if array.size(zigzag) == 0
+        zigzag.initialize(setup, maxSize)
+    else
+        newPoint = setup.dirVariables()
+        dirOver = dir ==  1 and newPoint.y > zigzag.get(0).y
+        dirLess = dir == -1 and newPoint.y < zigzag.get(0).y
+        if dirOver or dirLess
+            zigzag.set(0, newPoint)
+        point.new(na, na, na, na, na)
+
+// @function          compare zigzag
+// @param   zigzag    original array
+// @param   oldzigzag copied array
+// @returns boolOr    Or statement
+// @returns boolAnd   And statement  
+method boolPoint(point[] zigzag = na, point[] oldzigzag = na, int offset = 0) =>
+    boolOr = zigzag.get(offset + 0).x != oldzigzag.get(offset + 0).x  or zigzag.get(offset + 0).y != oldzigzag.get(offset + 0).y
+    boolAnd = zigzag.get(offset + 1).x == oldzigzag.get(offset + 1).x and zigzag.get(offset + 1).y == oldzigzag.get(offset + 1).y
+    [boolOr, boolAnd]
+
+// @function         create label based on zigzag array
+// @param   zigzag   original array
+// @param   size     font size
+// @param   offset   default value zero
+// @returns          new label
+method createLabel(point[] zigzag = na, string size = na, int offset = 0) =>
+    label.new(   x         = int(zigzag.get(offset + 0).x),
+                 y         =     zigzag.get(offset + 0).y,
+                 text      =     zigzag.get(offset + 0).str,
+                 xloc      =               xloc.bar_index,
+                 color     = color.new(color.blue, 100),
+                 style     =     zigzag.get(offset + 0).sty,
+                 textcolor =     zigzag.get(offset + 0).col,
+                 size      =                         size,
+                 tooltip   =     zigzag.get(offset + 0).str + '\n' + str.tostring(zigzag.get(offset + 0).y)) 
+
+// @function         create line based on zigzag array
+// @param   zigzag   original array
+// @param   width    line thickness
+// @param   style    line style
+// @param   offset   default value zero
+// @returns          new line
+method createLine(point[] zigzag = na, int width = na, string style = na, int offset = 0) =>
+    line.new(x1    = int(zigzag.get(offset + 1).x),
+             y1    =     zigzag.get(offset + 1).y,
+             x2    = int(zigzag.get(offset + 0).x),
+             y2    =     zigzag.get(offset + 0).y,
+             xloc  =        xloc.bar_index,
+             color =     zigzag.get(offset + 0).col,
+             style = style,
+             width = width)
+
+// @function         create line based on zigzag array
+// @param   zigzag   original array
+// @param   hiLo     switch value
+// @param   offset   default value zero
+// @returns          ternary conditional of hiLo
+method compareHL(point[] zigzag = na, HL hiLo = na, int offset = 0) =>
+    dir ==   1 ? zigzag.get(offset + 0).y > zigzag.get(offset + 2).y ? hiLo.Hi : hiLo.Lo :
+                 zigzag.get(offset + 0).y < zigzag.get(offset + 2).y ? hiLo.Lo : hiLo.Hi
+
+// @function         set text and tooltip for label
+// @param   this     original array
+// @param   str      string value for text
+// @param   tip      string value for tooltip
+method textTip(label this = na, string str = na, string tip = na) =>
+    this.set_text(   str)
+    this.set_tooltip(tip)
+//#endregion
+
+//#region ———————————————————— 5. Execution
+if ph or pl
+    if dirchanged
+        zigzag.initialize( varSetup, 4)
+    else
+        zigzag.update(varSetup, 4, dir)
+//#endregion
+
+//#region ———— FVG
+type fvg
+    box fvgBox
+    float limit
+    bool isBullish
+    float barHigh
+    float barLow
+
+isBullish(i) =>
+    close[i] > open[i]
+
+checkIfFvg(int middleCandleIndex = 1) =>
+    fvgSize = 0.0
+    fvg newFvg = na
+    boxLength = 5
+    boxColour = color.new(#f6fa03, 70)
+
+    if middleCandleIndex >= 1
+        previousCandleIndex = middleCandleIndex + 1
+        nextCandleIndex = middleCandleIndex - 1
+
+        isBullishMiddleCandle = isBullish(middleCandleIndex)
+
+        // If there is overlap of previous and next candles then there is no gap to highlight
+        isOverlapPrevNext = isBullishMiddleCandle ? low[nextCandleIndex] <= high[previousCandleIndex] : high[nextCandleIndex] >= low[previousCandleIndex]
+
+        isTopBodyOverlapped = isBullishMiddleCandle ? close[middleCandleIndex] >= low[nextCandleIndex] : open[middleCandleIndex] >= low[previousCandleIndex]
+        isBottomBodyOverlapped = isBullishMiddleCandle ? open[middleCandleIndex] <= high[previousCandleIndex] : close[middleCandleIndex] <= high[nextCandleIndex]
+
+        if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
+            if isBullishMiddleCandle
+                // limit = high[previousCandleIndex]
+                limit = low[nextCandleIndex]
+
+                newFvg := fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), limit, true, barHigh = high[1], barLow = low[1])
+                // fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
+            else
+                // limit = low[previousCandleIndex]
+                limit = high [nextCandleIndex]
+
+                newFvg := fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), limit, false, barHigh = high[1], barLow = low[1])
+                // fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
+    newFvg // return value
+//#endregion
+
+//#region ———— Strategy code
+// Checking agains the previous LL or HH so we don't end update
+// comparing the current bar to itself when a LL or HH is broken
+var point lastLL = na
+var point lastHH = na
+var point currentLL = na
+var point currentHH = na
+var string lastPivotType = na
+// int maxFVGSaved = 5
+
+// TODO do I just need to save the last FVG?
+var fvg lastBullishFvg = na
+var fvg lastBearishFvg = na
+
+isInTrade = strategy.position_size != 0
+isLong = strategy.position_size > 0
+isShort = strategy.position_size < 0
+
+buyEntry(float entry, float stopLoss) =>
+    if (not isLong )
+        strategy.cancel_all()
+        strategy.close("Sell")
+
+        // riskPoints = 1.5
+        r2r = 3
+        qty = 1
+        lineLength = 30
+
+        riskPoints = entry - stopLoss
+
+        takeProfitLevel = entry + riskPoints * r2r
+        stopLossLevel = entry - riskPoints
+
+        strategy.entry("Buy", strategy.long, qty, limit = entry, stop = entry)
+        strategy.order("Buy take profit", strategy.short, qty, limit =  takeProfitLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+        strategy.order("Buy stop loss", strategy.short, qty, stop =  stopLossLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+        log.info("Buy")
+
+        line.new(x1=bar_index, y1=entry, x2=bar_index+lineLength, y2=entry, color= color.blue)
+        line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
+        line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
+
+sellEntry() =>
+    if (not isShort )
+        strategy.cancel_all()
+        strategy.close("Buy")
+
+        riskPoints = 1.5
+        r2r = 3
+        qty = 1
+        lineLength = 30
+
+        takeProfitLevel = close - (riskPoints * r2r)
+        stopLossLevel = close + riskPoints
+        strategy.entry("Sell", strategy.short, qty)
+        strategy.order("Sell take profit", strategy.short, qty, limit =  takeProfitLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
+        strategy.order("Sell stop loss", strategy.short, qty, stop =  stopLossLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
+        log.info("Sell")
+
+        line.new(x1=bar_index, y1=open, x2=bar_index+lineLength, y2=open, color= color.blue)
+        line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
+        line.new(x1=bar_index, y1=stopLossLevel, x2=bar_index+lineLength, y2=stopLossLevel, color= color.red)
+
+
+float bullishEntryLimit = na
+float bearishEntryLimit = na
+
+// Break of HH
+if(not na(lastHH) and not na(lastBullishFvg))   // Have a previous HH and a bullish FVG
+    if(high > lastHH.y)
+        bullishEntryLimit := lastBullishFvg.limit
+        bearishEntryLimit := na
+        lastBearishFvg := na
+
+// Buy entry
+if(not na(bullishEntryLimit))
+    if(low <= bullishEntryLimit)
+        buyEntry(lastBullishFvg.limit, lastBullishFvg.fvgBox.get_bottom())  
+        bullishEntryLimit := na
+        lastBullishFvg := na
+
+
+// Break of LL
+if(not na(lastLL) and not na(lastBearishFvg))
+    if(low < lastLL.y)
+        bearishEntryLimit := lastBearishFvg.limit
+        bullishEntryLimit := na
+        lastBullishFvg := na
+
+// Sell entry
+if(not na(bearishEntryLimit))
+    if(high >= bearishEntryLimit)
+        // sellEntry()
+        bearishEntryLimit := na
+        lastBearishFvg := na
+
+if(not na(lastHH) and not na(lastBullishFvg))
+    log.info("\nlastHH: " + str.tostring(lastHH.y) + "\nlastBullishFvg: " + str.tostring(lastBullishFvg.limit))
+
+
+
+//#endregion
+
+//#region ———————————————————— 6. Constructs
+if zigzag.size() >= 3
+    var line   dirLine   = na
+    var label  dirLabel  = na
+    var string dirString = na
+    [boolOr, boolAnd]    = zigzag.boolPoint(oldzigzag)
+    if boolOr
+        if boolAnd
+            dirLine.delete()
+            dirLabel.delete()
+        if showLabel
+            if displayLabel == 'HL' or displayLabel == 'HHLL'
+                dirLabel := zigzag.createLabel(sizeLabel)
+            if displayLabel == 'HHLL' and zigzag.size() >= 4                             
+                dirString  := zigzag.compareHL(hiLo)
+                dirLabel.textTip(dirString + zigzag.get(0).str, dirString + zigzag.get(0).str + '\n' + str.tostring(zigzag.get(0).y))
+            if colorLabel != 'Trend'
+                dirLabel.set_textcolor(switchLabelColor)
+        if showLine
+            dirLine := zigzag.createLine(width, switchLine)
+            if colorLine  != 'Trend'
+                dirLine.set_color(switchLineColor)
+    // log.info("dirLabel: " + dirLabel.get_text())
+
+    // Save last HH or LL
+    if(dirLabel.get_text() == "LL")
+        currentLL := zigzag.get(0)
+    if(dirLabel.get_text() == "HH")
+        currentHH := zigzag.get(0)
+    lastPivotType := dirLabel.get_text()
+
+// Check for new FVGs
+// Only want FVGs from last pivot
+if(lastPivotType == "LH")
+    lastBullishFvg := na
+    lastLL := currentLL // The current value will keep updating as each bar exceeds the last but between the last LL and the current, there must be a LH inbetween
+
+if(lastPivotType == "HL") 
+    lastBearishFvg := na
+    lastHH := currentHH
+
+
+newFvg = checkIfFvg()
+if(not na(newFvg))
+    if(newFvg.isBullish)
+        lastBullishFvg := newFvg
+    else
+        lastBearishFvg := newFvg
+// //#endregion
+
