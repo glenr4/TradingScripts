@@ -310,10 +310,10 @@ buyEntry(float entry, float stopLoss) =>
             maxPosSize = 20
             posSize = math.round(r / (riskPoints * contractMultiplier), 0)
 
-            strategy.entry("Buy: "+longTradeCountText, strategy.long, posSize)  //, stop = entry) // , limit = entry
-            strategy.order("Buy take profit: "+longTradeCountText, strategy.short, posSize, limit =  takeProfitLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
-            strategy.order("Buy stop loss: "+longTradeCountText, strategy.short, posSize, stop =  stopLossLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
-            log.info("\nBuying trade #"+longTradeCountText+", \ntakeProfitLevel: "+str.tostring(takeProfitLevel)+", \nstopLossLevel: "+str.tostring(stopLossLevel))
+            strategy.entry("Buy", strategy.long, posSize)  //, stop = entry) // , limit = entry
+            strategy.order("Buy take profit", strategy.short, posSize, limit =  takeProfitLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+            strategy.order("Buy stop loss", strategy.short, posSize, stop =  stopLossLevel, oca_name = "Buy bracket", oca_type =  strategy.oca.cancel)
+            // log.info("\nBuying trade #"+longTradeCountText+", \ntakeProfitLevel: "+str.tostring(takeProfitLevel)+", \nstopLossLevel: "+str.tostring(stopLossLevel))
 
             line.new(x1=bar_index, y1=entry, x2=bar_index+lineLength, y2=entry, color= color.blue)
             line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
@@ -331,20 +331,25 @@ sellEntry(float entry, float stopLoss) =>
 
             minRiskPoints = 1.5
             r2r = 3
-            qty = 1
             lineLength = 30
 
             riskPoints = math.abs(entry - stopLoss)
-            // if(riskPoints < minRiskPoints)
-            //     riskPoints := minRiskPoints
+            if(riskPoints < minRiskPoints)
+                riskPoints := minRiskPoints
 
             takeProfitLevel = entry - (riskPoints * r2r)
             stopLossLevel = entry + riskPoints
 
-            strategy.entry("Sell", strategy.short, qty, stop = entry)   // limit = entry,
-            strategy.order("Sell take profit", strategy.long, qty, limit =  takeProfitLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
-            strategy.order("Sell stop loss", strategy.long, qty, stop =  stopLossLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
-            log.info("Sell")
+            // Position sizing 
+            r = 500 // US$500
+            contractMultiplier = 10.0 // MGC
+            maxPosSize = 20
+            posSize = math.round(r / (riskPoints * contractMultiplier), 0)
+
+            strategy.entry("Sell", strategy.short, posSize, stop = entry)   // limit = entry,
+            strategy.order("Sell take profit", strategy.long, posSize, limit =  takeProfitLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
+            strategy.order("Sell stop loss", strategy.long, posSize, stop =  stopLossLevel, oca_name = "Sell bracket", oca_type =  strategy.oca.cancel)
+            // log.info("Sell")
 
             line.new(x1=bar_index, y1=entry, x2=bar_index+lineLength, y2=entry, color= color.blue)
             line.new(x1=bar_index, y1=takeProfitLevel, x2=bar_index+lineLength, y2=takeProfitLevel, color= color.green)
@@ -381,7 +386,7 @@ if(not na(lastLL) and not na(lastBearishFvg))
 // Sell entry
 if(not na(bearishEntryLimit))
     if(high >= bearishEntryLimit)
-        // sellEntry(lastBearishFvg.limit, lastBearishFvg.barHigh)
+        sellEntry(lastBearishFvg.limit, lastBearishFvg.barHigh)
         bearishEntryLimit := na
         lastBearishFvg := na
 
