@@ -4,15 +4,18 @@
 //@version=5
 indicator("Engulfing Reversal", overlay = true)
 
+enableAlmostEngulfing = input.bool(true, "Enable almost engulfing", "Engulfs the previous candle's close rather than wick")
+
 isBullish(i) => close[i] > open[i]
 isBearish(i) => close[i] < open[i]
 
 isEngulfing(i) => high[i] > high[i+1] and low[i] < low[i+1]
+isAlmostEngulfing(i) => isBullish(i) ? high[i] > high[i+1] and low[i] < close[i+1] : low[i] < low[i+1] and high[i] > close[i+1]
 isStrongBullishClose(i) => isBullish(i) and close[i] > high[i+1]
 isStrongBearishClose(i) => isBearish(i) and close[i] < low[i+1]
 isBullishEngulfing(i) => isBullish(i) and isEngulfing(i)
 isBearishEngulfing(i) => isBearish(i) and isEngulfing(i)
 
-plotshape(isBullishEngulfing(0) and isStrongBullishClose(0) and isBearish(1), style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
-plotshape(isBearishEngulfing(0) and isStrongBearishClose(0) and isBullish(1), style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape((isBullishEngulfing(0) or (enableAlmostEngulfing ? isAlmostEngulfing(0) : false)) and isStrongBullishClose(0) and isBearish(1) , style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape((isBearishEngulfing(0)  or (enableAlmostEngulfing ? isAlmostEngulfing(0) : false)) and isStrongBearishClose(0) and isBullish(1), style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
 
