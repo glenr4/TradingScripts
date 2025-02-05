@@ -6,32 +6,38 @@ indicator("Trend Forming", overlay = true)
 import TradingView/ta/9
 
 sequentialCandleCount = input.int(2, "Sequential number of candles to define a trend")
+aboveAtrCount = input.int(1, "Number of candles with range above ATR")
 atrPeriod = input.int(5, "ATR period")
 
 atr = ta.atr(atrPeriod)
 candleRange = high - low
 
 isBullishTrendCandle(i) => 
-    close[i] > high[i+1] and (low[i] > low[i+1] or low[i] > low[i+2]) and candleRange[i] >= atr[i]
+    close[i] > high[i+1] and (low[i] > low[i+1] or low[i] > low[i+2]) //and (isAtrEnabled ? candleRange[i] >= atr[i] : true)
 isBearishTrendCandle(i) => 
-    close[i] < low[i+1] and (high[i] < high[i+1] or high[i] < high[i+2]) and candleRange[i] >= atr[i]
+    close[i] < low[i+1] and (high[i] < high[i+1] or high[i] < high[i+2]) //and (isAtrEnabled ? candleRange[i] >= atr[i] : true)
 
-// plotshape(isBearishTrendCandle(0), style=shape.circle, location=location.abovebar, color=color.blue, size=size.tiny)
 isBullishTrendCount = 0
+isBullishLargeCandleCount = 0
 for i=0 to sequentialCandleCount-1
     if isBullishTrendCandle(i)
         isBullishTrendCount += 1
+        if candleRange[i] >= atr[i]
+            isBullishLargeCandleCount += 1
 
 isBearishTrendCount = 0
+isBearishLargeCandleCount = 0
 for i=0 to sequentialCandleCount-1
     if isBearishTrendCandle(i)
         isBearishTrendCount += 1
+        if candleRange[i] >= atr[i]
+            isBearishLargeCandleCount += 1
 
-isBullishTrend = isBullishTrendCount >= sequentialCandleCount
-isBearishTrend = isBearishTrendCount >= sequentialCandleCount
+isBullishTrend = isBullishTrendCount >= sequentialCandleCount and isBullishLargeCandleCount >= aboveAtrCount
+isBearishTrend = isBearishTrendCount >= sequentialCandleCount and isBearishLargeCandleCount >= aboveAtrCount
 
 plotshape(isBullishTrend, style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
 plotshape(isBearishTrend, style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
 
-alertcondition(isBullishTrend,"Trend forming","Bullish")
-alertcondition(isBearishTrend,"Trend forming","Bearish")
+alertcondition(isBullishTrend,"Bullish","Bullish Trend forming")
+alertcondition(isBearishTrend,"Bearish","Bearish Trend forming")
