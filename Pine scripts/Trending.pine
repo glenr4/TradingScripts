@@ -1,0 +1,17 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("Trending", overlay = true)
+
+
+isBullishTrending(i) => 
+    close[i] > open[i] and close[i+1] > open[i+1] and close[i] > close[i+1] and high[i] > high[i+1] and low[i] > low[i+1]
+isBearishTrending(i) => 
+    close[i] < open[i] and close[i+1] < open[i+1] and close[i] < close[i+1] and high[i] < high[i+1] and low[i] < low[i+1]
+
+plotshape(isBullishTrending(0), style=shape.circle, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearishTrending(0), style=shape.circle, location=location.abovebar, color=color.red, size=size.tiny)
+
+alertcondition(isBullishTrending(0),"Bullish","Trending Bullish")
+alertcondition(isBearishTrending(0),"Bearish","Trending Bearish")
