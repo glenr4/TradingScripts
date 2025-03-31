@@ -7,12 +7,12 @@
 //@version=5
 indicator("Fair Value Gap", overlay = true, max_boxes_count = 500, max_labels_count = 500)
 
-fixedBoxLength = input.bool(false, "Use Fixed Length")
-reducePartialMitigation = input.bool(false, "Reduce FVG on partial mitigation")
-mitigateOnTouch = input.bool(true, "Mitigate on touch")
-boxLength = input.int(3, "Fixed Length")
-boxColour = input.color(color.new(#f6fa03, 70), "Box Colour")
-showFvgReversalSignals = input.bool(false, "Show FVG reversal signals")
+showFVGs = input.bool(true, "Show Fair Value Gaps")
+boxColour = input.color(color.new(#f6fa03, 70), "FVG Box Colour")
+showOrderBlocks = input.bool(true, "Show Order Blocks")
+obBoxColour = input.color(color.new(#b8b8b8, 90), "Order Block Box Colour")
+
+boxLength = 3
 
 type fvg
     box fvgBox
@@ -20,6 +20,7 @@ type fvg
     bool isBullish
 
 var fvg[] fvgs = array.new<fvg>(0)
+var fvg[] obs = array.new<fvg>(0)   // Order Blocks
 
 isBullish(i) =>
     close[i] > open[i]
@@ -42,22 +43,16 @@ isOverLapPriorBar(int middleCandleIndex) =>
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
-                limit = 0.0
-                if(mitigateOnTouch)
-                    limit := low[nextCandleIndex]
-                else
-                    limit := high[previousCandleIndex]
-
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), limit, true))
+                if showFVGs
+                    array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[nextCandleIndex], bar_index + boxLength, high[previousCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), low[nextCandleIndex], true))
+                if showOrderBlocks
+                    array.push(obs, fvg.new(box.new(bar_index - previousCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[previousCandleIndex], bgcolor=obBoxColour, border_color=obBoxColour, border_width = 1), high[previousCandleIndex], true))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
             else
-                limit = 0.0
-                if(mitigateOnTouch)
-                    limit := high[nextCandleIndex]
-                else
-                    limit := low[previousCandleIndex]
-
-                array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), limit, false))
+                if showFVGs
+                    array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), high[nextCandleIndex], false))
+                if showOrderBlocks
+                    array.push(obs, fvg.new(box.new(bar_index - previousCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[previousCandleIndex], bgcolor=obBoxColour, border_color=obBoxColour, border_width = 1), low[previousCandleIndex], false))
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
     fvgSize // return value
 
@@ -65,53 +60,35 @@ isOverLapPriorBar(int middleCandleIndex) =>
 //////////////////////////////
 maxLength = 400
 
-adjustBox(_array, stopExtensionOnCross, fixedExtensionLength) =>
+adjustBox(_array) =>
     int _boxCount = array.size(_array)
 
     if _boxCount > 0
         for _i = _boxCount - 1 to 0
             fvg  _fvg = array.get(_array, _i)
 
-            if stopExtensionOnCross
-                box.set_right(_fvg.fvgBox, bar_index) // extend right
+            box.set_right(_fvg.fvgBox, bar_index) // extend right
 
-                bool  _fvgMitigated = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox)+1 // ignore until after FVG
-                if _fvgMitigated or bar_index - box.get_left(_fvg.fvgBox) > maxLength
-                    array.remove(_array, _i)
-                else
- 
-                    if(reducePartialMitigation and not mitigateOnTouch)
-                        if(_fvg.isBullish and low < box.get_top(_fvg.fvgBox))
-                            box.set_top(_fvg.fvgBox, low)
-                        if(not _fvg.isBullish and high > box.get_bottom(_fvg.fvgBox))
-                            box.set_bottom(_fvg.fvgBox, high)
+            bool  _fvgMitigated = (_fvg.isBullish ? low <= _fvg.limit : high >= _fvg.limit) and bar_index != box.get_left(_fvg.fvgBox)+1 // ignore until after FVG
+            if _fvgMitigated or bar_index - box.get_left(_fvg.fvgBox) > maxLength
+                array.remove(_array, _i)
 
-
-                true    // don't need a return value but this fixes a return type error
-            else
-                box.set_right(_fvg.fvgBox, box.get_left(_fvg.fvgBox) + fixedExtensionLength)
-
-                false    // don't need a return value but this fixes a return type error
-
+            _fvgMitigated // return
+    else
+        false
 ////////////////////////////
 
-fvgSize = isOverLapPriorBar(1) 
-adjustBox(fvgs, not fixedBoxLength, boxLength)
+isOverLapPriorBar(1) 
 
-alertcondition(fvgSize > 0,"FVG Formed","FVG Formed")
+fvgMitigated = false
+obMitigated = false
 
+if showFVGs
+    fvgMitigated := adjustBox(fvgs)
 
+if showOrderBlocks
+    obMitigated := adjustBox(obs)
 
 // Signals
-// Reversal FVG forming
-bodySize(i) =>
-    math.abs(open[i] - close[i])
-
-isMiddleBodyBigger = bodySize(0) >= 2*bodySize(1)
-isMiddleBodyLarge = bodySize(0) >= 0.00100
-
-isBullishReversal = showFvgReversalSignals and isBearish(1) and isMiddleBodyBigger and close > high[1] and isMiddleBodyLarge
-isBearishReversal = showFvgReversalSignals and isBullish(1) and isMiddleBodyBigger and close < low[1] and isMiddleBodyLarge
-
-plotshape(isBullishReversal, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
-plotshape(isBearishReversal, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
+alertcondition(fvgMitigated,"FVG Mitigated","FVG Mitigated")
+alertcondition(obMitigated,"OB Mitigated","OB Mitigated")
