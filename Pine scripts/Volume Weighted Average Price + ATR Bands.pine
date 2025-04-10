@@ -1,0 +1,67 @@
+//@version=6
+indicator(title="Volume Weighted Average Price + ATR Bands", shorttitle="VWAP+ATR", overlay=true, timeframe="", timeframe_gaps=true)
+
+import PineCoders/ConditionalAverages/1 as pc
+
+useRollingVwap = input.bool(false, "Use rolling VWAP")
+atrDailyPeriod = input.int(10, "Daily ATR period")
+innerAtrBandPercent = input.float(75, "Inner ATR band percentage")
+
+// @function    Determines a time period from the chart's timeframe.
+// @returns     (int) A value of time in milliseconds that is appropriate for the current chart timeframe. To be used in the RVWAP calculation.
+int MS_IN_MIN   = 60 * 1000
+int MS_IN_HOUR  = MS_IN_MIN  * 60
+int MS_IN_DAY   = MS_IN_HOUR * 24
+timeStep() =>
+    int tfInMs = timeframe.in_seconds() * 1000
+    float step =
+      switch
+        tfInMs <= MS_IN_MIN        => MS_IN_HOUR
+        tfInMs <= MS_IN_MIN  * 5   => MS_IN_HOUR * 4
+        tfInMs <= MS_IN_HOUR       => MS_IN_DAY  * 1
+        tfInMs <= MS_IN_HOUR * 4   => MS_IN_DAY  * 3
+        tfInMs <= MS_IN_HOUR * 12  => MS_IN_DAY  * 7
+        tfInMs <= MS_IN_DAY        => MS_IN_DAY  * 30.4375
+        tfInMs <= MS_IN_DAY  * 7   => MS_IN_DAY  * 90
+        => MS_IN_DAY * 365
+    int result = int(step)
+
+// VWAP
+cumVolume = ta.cum(volume)
+if barstate.islast and cumVolume == 0
+    runtime.error("No volume is provided by the data vendor.")
+
+vwapValue= ta.vwap(hlc3)
+
+// Rolling VWAP
+// RVWAP + stdev bands
+int timeInMs     =  timeStep()
+int minBarsInput = 10
+float sumSrcVol    = pc.totalForTimeWhen(hlc3 * volume, timeInMs, true, minBarsInput)
+float sumVol       = pc.totalForTimeWhen(volume, timeInMs, true, minBarsInput)
+float sumSrcSrcVol = pc.totalForTimeWhen(volume * math.pow(hlc3, 2), timeInMs, true, minBarsInput)
+
+float rollingVWAP  = sumSrcVol / sumVol
+
+// Use Rolling VWAP
+if useRollingVwap
+	vwapValue := rollingVWAP
+
+// Bands
+atrDay = request.security(syminfo.tickerid, "1D", ta.atr(atrDailyPeriod))
+
+upperBandValue1 = vwapValue + atrDay
+lowerBandValue1 = vwapValue - atrDay
+upperBandValue2 = vwapValue + atrDay * innerAtrBandPercent/100
+lowerBandValue2 = vwapValue - atrDay * innerAtrBandPercent/100
+	
+plot(vwapValue, title = "VWAP", color = #2962FF)
+
+upperBand_1 = plot(upperBandValue1, title="Upper Band #1", color = color.green)
+lowerBand_1 = plot(lowerBandValue1, title="Lower Band #1", color = color.green)
+fill(upperBand_1, lowerBand_1,      title="Bands Fill #1", color = color.new(color.green, 95))
+
+upperBand_2 = plot(upperBandValue2, title="Upper Band #2", color = color.green)
+lowerBand_2 = plot(lowerBandValue2, title="Lower Band #2", color = color.green)
+fill(upperBand_1, upperBand_2,      title="Upper Bands Fill #2", color = color.new(color.green, 95))
+fill(lowerBand_1, lowerBand_2,      title="Lower Bands Fill #2", color = color.new(color.green, 95))
