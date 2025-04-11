@@ -30,4 +30,9 @@ else
 
 // plot(noOverlap)
 plot(noOverlap,color = isBullish ? color.green : color.red, style = plot.style_histogram, linewidth = 10)
-hline(0, color = color.gray, linestyle = hline.style_dotted)
+hline(0, color = color.black, linestyle = hline.style_solid)
+
+middleColour = color.new(color.gray, 75)
+hLine50 = hline(50, color = middleColour, linestyle = hline.style_solid)
+hLineMinus50 = hline(-50, color = middleColour, linestyle = hline.style_solid)
+fill(hLine50, hLineMinus50, color = middleColour)
