@@ -1,0 +1,33 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("No Overlap", overlay = false)
+
+lookbackBars = input.int(5, "Lookback bars")
+
+highest = 0.0
+for i=0 to lookbackBars-1
+    if high[lookbackBars-i] > highest
+        highest := high[lookbackBars-i]
+
+lowest = 1000000.0
+for i=0 to lookbackBars-1
+    if low[lookbackBars-i] < lowest
+        lowest := low[lookbackBars-i]
+
+isBullish = close >= open
+
+noOverlap = 0.0
+
+if high <= highest and low >= lowest
+    noOverlap := 0.0
+else 
+    if high > highest and isBullish
+        noOverlap := (high - highest)/(high - low)*100
+    else if low < lowest and not isBullish
+        noOverlap := (low - lowest)/(high - low)*100
+
+// plot(noOverlap)
+plot(noOverlap,color = isBullish ? color.green : color.red, style = plot.style_histogram, linewidth = 10)
+hline(0, color = color.gray, linestyle = hline.style_dotted)
