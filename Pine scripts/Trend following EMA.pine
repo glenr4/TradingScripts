@@ -1,0 +1,33 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("Trend following EMA", overlay = true)
+
+// Strategy
+// Entry price above high of signal bar within 2 bars
+// TP at end of day
+// SL at last pivot or close on other side of EMA
+
+
+emaPeriod = input.int(14, "EMA period")
+atrPeriod = input.int(10, "ATR period")
+barsSinceCloseOppositeSideEma = input.int(10, "Bars since close opposite side of EMA")
+
+ema = ta.ema(close, emaPeriod)
+plot(ema)
+
+isBullish = close > open
+isBearish = close < open
+
+candleRange = high - low
+plot(candleRange, color=color.orange)
+atr = ta.atr(atrPeriod)
+plot(atr, color = color.red)
+
+barsSinceCloseBelowEma = ta.barssince(close < ema)
+
+isBearishCloseAboveEma = isBearish and close > ema
+isMultiplePriorClosesAboveEma = barsSinceCloseBelowEma >= barsSinceCloseOppositeSideEma
+isSmallCandle = candleRange <= atr
+plotshape(isBearishCloseAboveEma and isMultiplePriorClosesAboveEma and isSmallCandle, style = shape.triangleup, location = location.belowbar, color = color.green, size = size.tiny)
