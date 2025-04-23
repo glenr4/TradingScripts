@@ -15,14 +15,14 @@ showFirst         = input.bool(true, "Show session", group = FIRST_SESSION_GROUP
 firstSessionName  = input.string("Tokyo", "Displayed name", group = FIRST_SESSION_GROUP, display = display.none)
 firstSessionTime  = input.session("0900-1500", "Session time", group = FIRST_SESSION_GROUP, display = display.none)
 firstSessionTZ    = input.string("Asia/Tokyo", "Session timezone", group = FIRST_SESSION_GROUP, display = display.none, tooltip = TZ_TOOLTIP_TEXT)
-firstSessionColor = input.color(color.new(#2962FF, 85), "Session color", group = FIRST_SESSION_GROUP)
+firstSessionColor = input.color(color.new(#FF9800, 85), "Session color", group = FIRST_SESSION_GROUP)
 
 const string SECOND_SESSION_GROUP = "Second session"
 showSecond         = input.bool(true, "Show session", group = SECOND_SESSION_GROUP, display = display.none)
 secondSessionName  = input.string("London", "Displayed name", group = SECOND_SESSION_GROUP, display = display.none)
 secondSessionTime  = input.session("0830-1630", "Session time", group = SECOND_SESSION_GROUP, display = display.none)
 secondSessionTZ    = input.string("Europe/London", "Session timezone", group = SECOND_SESSION_GROUP, display = display.none, tooltip = TZ_TOOLTIP_TEXT)
-secondSessionColor = input.color(color.new(#FF9800, 85), "Session color", group = SECOND_SESSION_GROUP)
+secondSessionColor = input.color(color.new(#2962FF, 85), "Session color", group = SECOND_SESSION_GROUP)
 
 const string THIRD_SESSION_GROUP = "Third session"
 showThird         = input.bool(true, "Show session", group = THIRD_SESSION_GROUP, display = display.none)
@@ -149,10 +149,10 @@ for info in sessionInfos
     info.update()
 
 // Daily High/Low with 50%
-//pricehigh = security(tickerid, 'D', high[1])
-//pricelow = security(tickerid, 'D', low[1])
-//price50 = (pricehigh - pricelow)/2 + pricelow
-//Daily Plots
-//plot(pricehigh ? pricehigh : na, title="Previous Daily High", style=linebr, linewidth=1, color=blue, transp = 70)
-//plot(pricelow ? pricelow : na, title="Previous Daily Low", style=linebr, linewidth=1, color=blue, transp = 70)
-//plot(price50 ? price50 : na, title="Previous Daily 50%", style=linebr, linewidth=1, color=black, transp = 70)
+pricehigh = request.security(syminfo.tickerid, '1D', high[1],lookahead = barmerge.lookahead_on)
+pricelow = request.security(syminfo.tickerid, '1D', low[1],lookahead = barmerge.lookahead_on)
+price50 = (pricehigh - pricelow)/2 + pricelow
+// Daily Plots
+plot(pricehigh, title="Previous Daily High", style=plot.style_line, linewidth=1, color=color.blue)
+plot(pricelow, title="Previous Daily Low", style=plot.style_line, linewidth=1, color=color.blue)
+plot(price50, title="Previous Daily 50%", style=plot.style_line, linewidth=1, color=color.black)
