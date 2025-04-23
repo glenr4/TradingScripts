@@ -153,6 +153,6 @@ pricehigh = request.security(syminfo.tickerid, '1D', high[1],lookahead = barmerg
 pricelow = request.security(syminfo.tickerid, '1D', low[1],lookahead = barmerge.lookahead_on)
 price50 = (pricehigh - pricelow)/2 + pricelow
 // Daily Plots
-plot(pricehigh, title="Previous Daily High", style=plot.style_line, linewidth=1, color=color.blue)
-plot(pricelow, title="Previous Daily Low", style=plot.style_line, linewidth=1, color=color.blue)
-plot(price50, title="Previous Daily 50%", style=plot.style_line, linewidth=1, color=color.black)
+plot(pricehigh, title="Previous Daily High", style=plot.style_line, linewidth=2, color=color.black)
+plot(pricelow, title="Previous Daily Low", style=plot.style_line, linewidth=2, color=color.black)
+plot(price50, title="Previous Daily 50%", style=plot.style_line, linewidth=2, color=color.new(color.gray, 75))
