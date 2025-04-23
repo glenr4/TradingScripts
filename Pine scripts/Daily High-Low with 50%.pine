@@ -8,6 +8,6 @@ pricelow = security(tickerid, 'D', low[1])
 price50 = (pricehigh - pricelow)/2 + pricelow
 //Daily Plots
 offs_daily = 0 
-plot(active and pricehigh ? pricehigh : na, title="Previous Daily High", style=linebr, linewidth=1, color=blue, transp = 70)
-plot(active and pricelow ? pricelow : na, title="Previous Daily Low", style=linebr, linewidth=1, color=blue, transp = 70)
+plot(active and pricehigh ? pricehigh : na, title="Previous Daily High", style=linebr, linewidth=1, color=red, transp = 70)
+plot(active and pricelow ? pricelow : na, title="Previous Daily Low", style=linebr, linewidth=1, color=red, transp = 70)
 plot(active and price50 ? price50 : na, title="Previous Daily 50%", style=linebr, linewidth=1, color=black, transp = 70)
