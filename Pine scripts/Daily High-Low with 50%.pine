@@ -1,0 +1,13 @@
+//Created By MikeWitts 20170616
+//modified version of Chris Moodys indicator
+// I added 50% line
+study(title="Daily High/Low with 50%", shorttitle="Daily High/Low & 50%", overlay=true)
+active = input(true, title="Show On Chart")
+pricehigh = security(tickerid, 'D', high[1])
+pricelow = security(tickerid, 'D', low[1])
+price50 = (pricehigh - pricelow)/2 + pricelow
+//Daily Plots
+offs_daily = 0 
+plot(active and pricehigh ? pricehigh : na, title="Previous Daily High", style=linebr, linewidth=1, color=blue, transp = 70)
+plot(active and pricelow ? pricelow : na, title="Previous Daily Low", style=linebr, linewidth=1, color=blue, transp = 70)
+plot(active and price50 ? price50 : na, title="Previous Daily 50%", style=linebr, linewidth=1, color=black, transp = 70)
