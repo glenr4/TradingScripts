@@ -38,8 +38,10 @@ isOverLapPriorBar(int middleCandleIndex) =>
         // If there is overlap of previous and next candles then there is no gap to highlight
         isOverlapPrevNext = isBullishMiddleCandle ? low[nextCandleIndex] <= high[previousCandleIndex] : high[nextCandleIndex] >= low[previousCandleIndex]
 
-        isTopBodyOverlapped = isBullishMiddleCandle ? close[middleCandleIndex] >= low[nextCandleIndex] : open[middleCandleIndex] >= low[previousCandleIndex]
-        isBottomBodyOverlapped = isBullishMiddleCandle ? open[middleCandleIndex] <= high[previousCandleIndex] : close[middleCandleIndex] <= high[nextCandleIndex]
+        // To have the textbook version of FVG, this logic should be enalbed
+        // But if the FVG is so strong that is actually gaps, then want to highlight that as well
+        isTopBodyOverlapped = true  // isBullishMiddleCandle ? close[middleCandleIndex] >= low[nextCandleIndex] : open[middleCandleIndex] >= low[previousCandleIndex]
+        isBottomBodyOverlapped = true //isBullishMiddleCandle ? open[middleCandleIndex] <= high[previousCandleIndex] : close[middleCandleIndex] <= high[nextCandleIndex]
 
         if not isOverlapPrevNext and isTopBodyOverlapped and isBottomBodyOverlapped
             if isBullishMiddleCandle
