@@ -125,20 +125,20 @@ method update(SessionInfo this) =>
         if not na(this.sessionDisplay)
             lastHigh = this.sessionDisplay.sessionBox.get_top()
             lastLow = this.sessionDisplay.sessionBox.get_bottom()
-            labelBelowLineOffset = ta.atr(5)*0.2
+            labelBelowLineOffset = ta.atr(50)*0.3
 
             this.lastHigh.level := line.new(bar_index-1, lastHigh, bar_index+10, lastHigh, xloc.bar_index, color = color.new(this.color, 0), style = line.style_solid, width = 2)
-            this.lastHigh.theLabel := label.new(bar_index, lastHigh, text = this.name + " High", style = label.style_none, textalign = text.align_right, textcolor = color.new(this.color, 0), size=size.normal)
+            this.lastHigh.theLabel := label.new(bar_index, lastHigh, text = str.tostring(lastHigh), style = label.style_none, textalign = text.align_right, textcolor = color.new(this.color, 0), size=size.normal)
             this.lastLow.level := line.new(bar_index-1, lastLow, bar_index+10, lastLow, xloc.bar_index, color = color.new(this.color, 0), style = line.style_solid, width = 2)
-            this.lastLow.theLabel := label.new(bar_index, lastLow - labelBelowLineOffset, text = this.name + " Low", style = label.style_none, textalign = text.align_right, textcolor = color.new(this.color, 0), size=size.normal)
+            this.lastLow.theLabel := label.new(bar_index, lastLow, text = str.tostring(lastLow), style = label.style_none, textalign = text.align_right, textcolor = color.new(this.color, 0), size=size.normal)
         
             this.sessionDisplay := na   // return
         else
             // Extend to current bar 
             line.set_x2(this.lastHigh.level, bar_index)
-            label.set_x(this.lastHigh.theLabel, bar_index)
+            // label.set_x(this.lastHigh.theLabel, bar_index)
             line.set_x2(this.lastLow.level, bar_index)
-            label.set_x(this.lastLow.theLabel, bar_index)
+            // label.set_x(this.lastLow.theLabel, bar_index)
 
             na   // return
 
@@ -160,10 +160,27 @@ for info in sessionInfos
     info.update()
 
 // Daily High/Low with 50%
-pricehigh = request.security(syminfo.tickerid, '1D', high[1],lookahead = barmerge.lookahead_on)
-pricelow = request.security(syminfo.tickerid, '1D', low[1],lookahead = barmerge.lookahead_on)
-price50 = (pricehigh - pricelow)/2 + pricelow
-// Daily Plots
-plot(pricehigh, title="Previous Daily High", style=plot.style_line, linewidth=2, color=color.black)
-plot(pricelow, title="Previous Daily Low", style=plot.style_line, linewidth=2, color=color.black)
-plot(price50, title="Previous Daily 50%", style=plot.style_line, linewidth=2, color=color.new(color.gray, 75))
+dailyHigh = request.security(syminfo.tickerid, '1D', high[1],lookahead = barmerge.lookahead_on)
+dailyLow = request.security(syminfo.tickerid, '1D', low[1],lookahead = barmerge.lookahead_on)
+dailyMid = (dailyHigh - dailyLow)/2 + dailyLow
+
+draw_segmented_line(Level level, float value, color colour) =>
+    valueChanged = value != value[1]
+
+    if valueChanged
+        Level newLevel = Level.new()
+        newLevel.level := line.new(x1=bar_index, y1=value, x2=bar_index, y2=value, color=colour, width=2)
+        newLevel.theLabel := label.new(bar_index, value, text = str.tostring(value), style = label.style_none, textalign = text.align_right, textcolor = colour, size=size.normal)
+        newLevel
+    else
+        if not na(level)
+            line.set_x2(level.level, bar_index)
+            // label.set_x(level.theLabel, bar_index)
+            level
+
+var Level dailyHighLevel = na
+var Level dailyLowLevel = na
+var Level dailyMidLevel = na
+dailyHighLevel := draw_segmented_line(dailyHighLevel, dailyHigh, color.black)
+dailyLowLevel := draw_segmented_line(dailyLowLevel, dailyLow, color.black)
+dailyMidLevel := draw_segmented_line(dailyMidLevel, dailyMid, color.gray)

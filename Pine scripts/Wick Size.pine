@@ -5,12 +5,10 @@
 indicator("Wick Size", overlay = false)
 
 maPeriods = input.int(100, "Moving average periods")
-maMultiplier = input.float(2, "Moving average multiplier")
+maMultiplier = input.float(1, "Moving average multiplier")
 
 isBullish = close >= open
-upperWickSize = isBullish ? high - close : high - open
-lowerWickSize = isBullish ? open - low : close - low
-largestWick = upperWickSize >= lowerWickSize ? upperWickSize : lowerWickSize
 
-plot(largestWick, color = color.green)
-plot(maMultiplier * ta.ema(largestWick, maPeriods))
+totalWickSize = isBullish ? high - close + open - low : high - open + close - low
+plot(totalWickSize, color = color.red)
+plot(ta.sma(totalWickSize, maPeriods) * maMultiplier, color = color.blue)
