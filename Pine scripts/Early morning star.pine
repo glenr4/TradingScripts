@@ -7,6 +7,8 @@ indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
 // --- Input Parameters ---
 i_htf = input.timeframe("30", "Higher Timeframe (HTF)")
 
+i_maxC2BodyRatioC1 = input.float(50.0, "Max C2 Body % of C1", minval=1.0, maxval=100.0, step=5.0, tooltip="Maximum percentage the second candle's body can be relative to the first candle's body.")
+
 i_alertMorningStar = input.bool(true, "Enable Morning Star Alert")
 i_alertEveningStar = input.bool(true, "Enable Evening Star Alert")
 
@@ -41,14 +43,24 @@ var bool morningStarDetected = false
 isC1Bearish = f_isBearish(c1_open, c1_close)
 
 // Candle 2: Gapping down from C1's real body
-isC2GapDown = math.max(c2_open, c2_close) < c1_close // C2 body (top) below C1 close (bottom of C1 body)
+isC2GapDown = true// math.max(c2_open, c2_close) < c1_close // C2 body (top) below C1 close (bottom of C1 body)
+
+// Candle 2 relative to Candle 1's range
+isC2LowerLow = c2_low < c1_low
+isC2LowerHigh = c2_high < c1_high
+
+// Maximum second candle body percentage of first
+isC2BodySmallRelativeC1 = f_getBodySize(c2_open, c2_close) <= f_getBodySize(c1_open, c1_close) * (i_maxC2BodyRatioC1 / 100.0)
 
 // Candle 3: Bullish candle
 isC3BullishForming = f_isBullish(c3_open, c3_close)
 
+// Candle 3 relative to Candle 2's range
+isC3HigherLow = c3_low > c2_low
+
 
 // Combine simplified conditions for Morning Star
-morningStar = isC1Bearish and isC2GapDown and isC3BullishForming
+morningStar = isC1Bearish and isC2GapDown and isC2LowerLow and isC2LowerHigh and isC2BodySmallRelativeC1 and isC3BullishForming and isC3HigherLow
 
 // Detect morning star only when the current HTF bar is the one that completes the pattern
 if morningStar and not morningStarDetected
@@ -66,12 +78,22 @@ isC1Bullish = f_isBullish(c1_open, c1_close)
 // Candle 2: Gapping up from C1's real body
 isC2GapUp = math.min(c2_open, c2_close) > c1_close // C2 body (bottom) above C1 close (top of C1 body)
 
+// Candle 2 relative to Candle 1's range
+isC2HigherLow = c2_low > c1_low
+isC2HigherHigh = c2_high > c1_high
+
+// Maximum second candle body percentage of first
+isC2BodySmallRelativeC1_ES = f_getBodySize(c2_open, c2_close) <= f_getBodySize(c1_open, c1_close) * (i_maxC2BodyRatioC1 / 100.0)
+
 // Candle 3: Bearish candle
 isC3BearishForming = f_isBearish(c3_open, c3_close)
 
+// Candle 3 relative to Candle 2's range
+isC3LowerHigh = c3_high < c2_high
+
 
 // Combine simplified conditions for Evening Star
-eveningStar = isC1Bullish and isC2GapUp and isC3BearishForming
+eveningStar = isC1Bullish and isC2GapUp and isC2HigherLow and isC2HigherHigh and isC2BodySmallRelativeC1_ES and isC3BearishForming and isC3LowerHigh
 
 // Detect evening star only when the current HTF bar is the one that completes the pattern
 if eveningStar and not eveningStarDetected
