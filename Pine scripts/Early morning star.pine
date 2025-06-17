@@ -1,5 +1,5 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © GeminiAI
+// © glenrutherford4
 
 //@version=5
 indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
@@ -42,9 +42,6 @@ var bool morningStarDetected = false
 // Candle 1: Bearish candle
 isC1Bearish = f_isBearish(c1_open, c1_close)
 
-// Candle 2: Gapping down from C1's real body
-isC2GapDown = true// math.max(c2_open, c2_close) < c1_close // C2 body (top) below C1 close (bottom of C1 body)
-
 // Candle 2 relative to Candle 1's range
 isC2LowerLow = c2_low < c1_low
 isC2LowerHigh = c2_high < c1_high
@@ -60,7 +57,7 @@ isC3HigherLow = c3_low > c2_low
 
 
 // Combine simplified conditions for Morning Star
-morningStar = isC1Bearish and isC2GapDown and isC2LowerLow and isC2LowerHigh and isC2BodySmallRelativeC1 and isC3BullishForming and isC3HigherLow
+morningStar = isC1Bearish and isC2LowerLow and isC2LowerHigh and isC2BodySmallRelativeC1 and isC3BullishForming and isC3HigherLow
 
 // Detect morning star only when the current HTF bar is the one that completes the pattern
 if morningStar and not morningStarDetected
@@ -74,9 +71,6 @@ var bool eveningStarDetected = false
 // Conditions for Evening Star (simplified):
 // Candle 1: Bullish candle
 isC1Bullish = f_isBullish(c1_open, c1_close)
-
-// Candle 2: Gapping up from C1's real body
-isC2GapUp = math.min(c2_open, c2_close) > c1_close // C2 body (bottom) above C1 close (top of C1 body)
 
 // Candle 2 relative to Candle 1's range
 isC2HigherLow = c2_low > c1_low
@@ -93,7 +87,7 @@ isC3LowerHigh = c3_high < c2_high
 
 
 // Combine simplified conditions for Evening Star
-eveningStar = isC1Bullish and isC2GapUp and isC2HigherLow and isC2HigherHigh and isC2BodySmallRelativeC1_ES and isC3BearishForming and isC3LowerHigh
+eveningStar = isC1Bullish and isC2HigherLow and isC2HigherHigh and isC2BodySmallRelativeC1_ES and isC3BearishForming and isC3LowerHigh
 
 // Detect evening star only when the current HTF bar is the one that completes the pattern
 if eveningStar and not eveningStarDetected
@@ -104,14 +98,12 @@ else if not eveningStar and eveningStarDetected
 // --- Plotting and Alerts ---
 
 // Plot Morning Star pattern
-plotshape(morningStarDetected, style=shape.triangleup, location=location.belowbar, color=color.rgb(33, 150, 243, 80), size=size.small, title="Morning Star", text="MS")
-plotshape(morningStarDetected, style=shape.labelup, location=location.belowbar, color=color.new(color.blue, 70), textcolor=color.white, size=size.small, title="Morning Star Label", text="Morning Star Pattern Forming!")
+plotshape(morningStarDetected, style=shape.triangleup, location=location.belowbar, color=color.rgb(33, 150, 243, 80), size=size.small, title="Early Morning Star")
 
 // Plot Evening Star pattern
-plotshape(eveningStarDetected, style=shape.triangledown, location=location.abovebar, color=color.rgb(244, 67, 54, 80), size=size.small, title="Evening Star", text="ES")
-plotshape(eveningStarDetected, style=shape.labeldown, location=location.abovebar, color=color.new(color.red, 70), textcolor=color.white, size=size.small, title="Evening Star Label", text="Evening Star Pattern Forming!")
+plotshape(eveningStarDetected, style=shape.triangledown, location=location.abovebar, color=color.rgb(244, 67, 54, 80), size=size.small, title="Early Evening Star")
 
 
 // Alerts
-alertcondition(morningStarDetected and i_alertMorningStar, title="Morning Star Alert", message="Morning Star pattern detected on {{ticker}} {{interval}}!")
-alertcondition(eveningStarDetected and i_alertEveningStar, title="Evening Star Alert", message="Evening Star pattern detected on {{ticker}} {{interval}}!")
+alertcondition(morningStarDetected and i_alertMorningStar, title="Early Morning Star Alert", message="Early Morning Star pattern detected on {{ticker}} {{interval}}!")
+alertcondition(eveningStarDetected and i_alertEveningStar, title="Early Evening Star Alert", message="Early Evening Star pattern detected on {{ticker}} {{interval}}!")
