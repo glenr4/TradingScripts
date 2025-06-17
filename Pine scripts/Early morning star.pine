@@ -2,14 +2,10 @@
 // © GeminiAI
 
 //@version=5
-indicator("Early Morning/Evening Star", shorttitle="Early M/E Star", overlay=true)
+indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
 
 // --- Input Parameters ---
-i_htf = input.timeframe("D", "Higher Timeframe (HTF)") // Default to Daily
-i_bodyRatioBig = input.float(0.1, "Min Body Size for C1", minval=0.1, maxval=1.0, step=0.05, tooltip="Minimum ratio of body to total candle range for the first candle.")
-i_bodyRatioSmall = input.float(0.5, "Max Body Size for C2", minval=0.01, maxval=0.5, step=0.01, tooltip="Maximum ratio of body to total candle range for the second candle (doji/spinning top).")
-i_c1c3OverlapRatio = input.float(0.1, "C3 Overlap with C1 (%)", minval=0.1, maxval=1.0, step=0.05, tooltip="Minimum percentage the third candle's close should penetrate the first candle's body.")
-i_wickRatio = input.float(0.01, "Min Wick Size for C3", minval=0.01, maxval=0.5, step=0.05, tooltip="Minimum ratio of wick to candle range for the third candle (required for early detection).")
+i_htf = input.timeframe("30", "Higher Timeframe (HTF)")
 
 i_alertMorningStar = input.bool(true, "Enable Morning Star Alert")
 i_alertEveningStar = input.bool(true, "Enable Evening Star Alert")
@@ -17,36 +13,16 @@ i_alertEveningStar = input.bool(true, "Enable Evening Star Alert")
 // --- Helper Functions ---
 
 // Calculates the absolute body size of a candle
-f_getBodySize(open, close) => math.abs(close - open)
+f_getBodySize(candleOpen, candleClose) => math.abs(candleClose - candleOpen)
 
 // Calculates the total range of a candle (high - low)
-f_getRange(high, low) => high - low
+f_getRange(candleHigh, candleLow) => candleHigh - candleLow
 
 // Checks if a candle is bullish
-f_isBullish(open, close) => close > open
+f_isBullish(candleOpen, candleClose) => candleClose > candleOpen
 
 // Checks if a candle is bearish
-f_isBearish(open, close) => close < open
-
-// Checks if a candle has a large body based on the ratio to its range
-f_isLargeBody(open, close, high, low, minRatio) =>
-    candleRange = f_getRange(high, low)
-    candleRange > 0 and f_getBodySize(open, close) / candleRange >= minRatio
-
-// Checks if a candle has a small body based on the ratio to its range
-f_isSmallBody(open, close, high, low, maxRatio) =>
-    candleRange = f_getRange(high, low)
-    candleRange > 0 and f_getBodySize(open, close) / candleRange <= maxRatio
-
-// Checks for a significant lower wick
-f_hasLowerWick(open, close, candleLow, candleHigh) => // Renamed 'low' to 'candleLow'
-    candleRange = f_getRange(candleHigh, candleLow) // Renamed 'range' to 'candleRange'
-    candleRange > 0 and (math.min(open, close) - candleLow) / candleRange >= i_wickRatio
-
-// Checks for a significant upper wick
-f_hasUpperWick(open, close, candleHigh, candleLow) => // Renamed 'high' to 'candleHigh'
-    candleRange = f_getRange(candleHigh, candleLow) // Renamed 'range' to 'candleRange'
-    candleRange > 0 and (candleHigh - math.max(open, close)) / candleRange >= i_wickRatio
+f_isBearish(candleOpen, candleClose) => candleClose < candleOpen
 
 
 // --- Get Higher Timeframe Data ---
@@ -60,26 +36,19 @@ f_hasUpperWick(open, close, candleHigh, candleLow) => // Renamed 'high' to 'cand
 // --- Morning Star Pattern Detection ---
 var bool morningStarDetected = false
 
-// Conditions for Morning Star:
-// Candle 1: Large bearish candle
-isC1BearishAndLarge = f_isBearish(c1_open, c1_close) and f_isLargeBody(c1_open, c1_close, c1_high, c1_low, i_bodyRatioBig)
+// Conditions for Morning Star (simplified):
+// Candle 1: Bearish candle
+isC1Bearish = f_isBearish(c1_open, c1_close)
 
-// Candle 2: Small body (doji or spinning top), gapping down from C1's real body
-isC2Small = f_isSmallBody(c2_open, c2_close, c2_high, c2_low, i_bodyRatioSmall)
-// Gap down condition: C2's body is below C1's body
+// Candle 2: Gapping down from C1's real body
 isC2GapDown = math.max(c2_open, c2_close) < c1_close // C2 body (top) below C1 close (bottom of C1 body)
 
-// Candle 3: Bullish candle, with a lower wick, closing well into C1's body (while forming)
+// Candle 3: Bullish candle
 isC3BullishForming = f_isBullish(c3_open, c3_close)
-isC3HasLowerWick = f_hasLowerWick(c3_open, c3_close, c3_low, c3_high)
-
-// C3 closing well into C1's body: current close is above 50% retracement of C1's body
-c1_body_mid = c1_open - (f_getBodySize(c1_open, c1_close) / 2) // Midpoint of C1's bearish body
-isC3OverlapC1 = c3_close > (c1_close + f_getBodySize(c1_open, c1_close) * i_c1c3OverlapRatio)
 
 
-// Combine conditions for Morning Star
-morningStar = isC1BearishAndLarge and isC2Small and isC2GapDown and isC3BullishForming and isC3HasLowerWick and isC3OverlapC1
+// Combine simplified conditions for Morning Star
+morningStar = isC1Bearish and isC2GapDown and isC3BullishForming
 
 // Detect morning star only when the current HTF bar is the one that completes the pattern
 if morningStar and not morningStarDetected
@@ -90,26 +59,19 @@ else if not morningStar and morningStarDetected
 // --- Evening Star Pattern Detection ---
 var bool eveningStarDetected = false
 
-// Conditions for Evening Star:
-// Candle 1: Large bullish candle
-isC1BullishAndLarge = f_isBullish(c1_open, c1_close) and f_isLargeBody(c1_open, c1_close, c1_high, c1_low, i_bodyRatioBig)
+// Conditions for Evening Star (simplified):
+// Candle 1: Bullish candle
+isC1Bullish = f_isBullish(c1_open, c1_close)
 
-// Candle 2: Small body (doji or spinning top), gapping up from C1's real body
-isC2Small_ES = f_isSmallBody(c2_open, c2_close, c2_high, c2_low, i_bodyRatioSmall)
-// Gap up condition: C2's body is above C1's body
+// Candle 2: Gapping up from C1's real body
 isC2GapUp = math.min(c2_open, c2_close) > c1_close // C2 body (bottom) above C1 close (top of C1 body)
 
-// Candle 3: Bearish candle, with an upper wick, closing well into C1's body (while forming)
+// Candle 3: Bearish candle
 isC3BearishForming = f_isBearish(c3_open, c3_close)
-isC3HasUpperWick = f_hasUpperWick(c3_open, c3_close, c3_high, c3_low)
-
-// C3 closing well into C1's body: current close is below 50% retracement of C1's body
-c1_body_mid_es = c1_open + (f_getBodySize(c1_open, c1_close) / 2) // Midpoint of C1's bullish body
-isC3OverlapC1_ES = c3_close < (c1_close - f_getBodySize(c1_open, c1_close) * i_c1c3OverlapRatio)
 
 
-// Combine conditions for Evening Star
-eveningStar = isC1BullishAndLarge and isC2Small_ES and isC2GapUp and isC3BearishForming and isC3HasUpperWick and isC3OverlapC1_ES
+// Combine simplified conditions for Evening Star
+eveningStar = isC1Bullish and isC2GapUp and isC3BearishForming
 
 // Detect evening star only when the current HTF bar is the one that completes the pattern
 if eveningStar and not eveningStarDetected
@@ -131,4 +93,3 @@ plotshape(eveningStarDetected, style=shape.labeldown, location=location.abovebar
 // Alerts
 alertcondition(morningStarDetected and i_alertMorningStar, title="Morning Star Alert", message="Morning Star pattern detected on {{ticker}} {{interval}}!")
 alertcondition(eveningStarDetected and i_alertEveningStar, title="Evening Star Alert", message="Evening Star pattern detected on {{ticker}} {{interval}}!")
-
