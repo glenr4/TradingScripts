@@ -9,6 +9,9 @@ i_htf = input.timeframe("30", "Higher Timeframe (HTF)")
 
 i_maxC2BodyRatioC1 = input.float(50.0, "Max C2 Body % of C1", minval=1.0, maxval=100.0, step=5.0, tooltip="Maximum percentage the second candle's body can be relative to the first candle's body.")
 
+// New input for the minimum lower wick size on the third candle, in ticks
+i_minC3LowerWick = input.int(5, "Min C3 Lower Wick (ticks)", minval=0, tooltip="Minimum size of the third candle's lower wick/upper wick in ticks (price * ticksize).")
+
 i_alertMorningStar = input.bool(true, "Enable Morning Star Alert")
 i_alertEveningStar = input.bool(true, "Enable Evening Star Alert")
 
@@ -26,7 +29,6 @@ f_isBullish(candleOpen, candleClose) => candleClose > candleOpen
 // Checks if a candle is bearish
 f_isBearish(candleOpen, candleClose) => candleClose < candleOpen
 
-
 // --- Get Higher Timeframe Data ---
 // We use request.security with lookahead=barmerge.lookahead_on to get real-time HTF data,
 // meaning the current HTF bar's OHLC values will update as the current (lower timeframe) bar progresses.
@@ -38,7 +40,7 @@ f_isBearish(candleOpen, candleClose) => candleClose < candleOpen
 // --- Morning Star Pattern Detection ---
 var bool morningStarDetected = false
 
-// Conditions for Morning Star (simplified):
+// Conditions for Morning Star:
 // Candle 1: Bearish candle
 isC1Bearish = f_isBearish(c1_open, c1_close)
 
@@ -55,9 +57,13 @@ isC3BullishForming = f_isBullish(c3_open, c3_close)
 // Candle 3 relative to Candle 2's range
 isC3HigherLow = c3_low > c2_low
 
+// NEW CONDITION: Lower wick size for C3 (for Morning Star)
+// If the candle is bullish, the lower wick is open - low.
+// Check if the lower wick is greater than or equal to the user-defined minimum in ticks.
+isC3LowerWickSufficient = (c3_open - c3_low) >= (i_minC3LowerWick * syminfo.mintick)
 
-// Combine simplified conditions for Morning Star
-morningStar = isC1Bearish and isC2LowerLow and isC2LowerHigh and isC2BodySmallRelativeC1 and isC3BullishForming and isC3HigherLow
+// Combine all conditions for Morning Star
+morningStar = isC1Bearish and isC2LowerLow and isC2LowerHigh and isC2BodySmallRelativeC1 and isC3BullishForming and isC3HigherLow and isC3LowerWickSufficient
 
 // Detect morning star only when the current HTF bar is the one that completes the pattern
 if morningStar and not morningStarDetected
@@ -68,7 +74,7 @@ else if not morningStar and morningStarDetected
 // --- Evening Star Pattern Detection ---
 var bool eveningStarDetected = false
 
-// Conditions for Evening Star (simplified):
+// Conditions for Evening Star:
 // Candle 1: Bullish candle
 isC1Bullish = f_isBullish(c1_open, c1_close)
 
@@ -85,9 +91,13 @@ isC3BearishForming = f_isBearish(c3_open, c3_close)
 // Candle 3 relative to Candle 2's range
 isC3LowerHigh = c3_high < c2_high
 
+// NEW CONDITION: Upper wick size for C3 (for Evening Star)
+// If the candle is bearish, the upper wick is high - open.
+// Check if the upper wick is greater than or equal to the user-defined minimum in ticks.
+isC3UpperWickSufficient = (c3_high - c3_open) >= (i_minC3LowerWick * syminfo.mintick)
 
-// Combine simplified conditions for Evening Star
-eveningStar = isC1Bullish and isC2HigherLow and isC2HigherHigh and isC2BodySmallRelativeC1_ES and isC3BearishForming and isC3LowerHigh
+// Combine all conditions for Evening Star
+eveningStar = isC1Bullish and isC2HigherLow and isC2HigherHigh and isC2BodySmallRelativeC1_ES and isC3BearishForming and isC3LowerHigh and isC3UpperWickSufficient
 
 // Detect evening star only when the current HTF bar is the one that completes the pattern
 if eveningStar and not eveningStarDetected
@@ -102,7 +112,6 @@ plotshape(morningStarDetected, style=shape.triangleup, location=location.belowba
 
 // Plot Evening Star pattern
 plotshape(eveningStarDetected, style=shape.triangledown, location=location.abovebar, color=color.rgb(244, 67, 54, 80), size=size.small, title="Early Evening Star")
-
 
 // Alerts
 alertcondition(morningStarDetected and i_alertMorningStar, title="Early Morning Star Alert", message="Early Morning Star pattern detected on {{ticker}} {{interval}}!")
