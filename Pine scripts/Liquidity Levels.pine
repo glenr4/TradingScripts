@@ -22,7 +22,7 @@ pivotLow = ta.pivotlow(low, leftBars, rightBars)
 // https://www.tradingview.com/pine-script-docs/en/v5/language/Loops.html
 // https://stackoverflow.com/a/68733918
 adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, int fixedExtensionLength, bool isPivotHigh) =>
-    float[] crossedLineValues = array.new_float(0)
+    int crossedLineValues = 0
     int _qtyOfLines = array.size(_arrayOfLines)
 
     if _qtyOfLines > 0
@@ -40,11 +40,11 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, in
             
             if (stopExtensionOnCloseCross and _lineCrossedByClose) or (not stopExtensionOnCloseCross and (_lineCrossedByUpperWick or _lineCrossedByLowerWick or _lineCrossedByClose))
                 array.remove(_arrayOfLines, _i)
-                crossedLineValues.push(_lineLevel)
+                crossedLineValues += 1
 
         crossedLineValues
     else
-        na
+        crossedLineValues
 ////////////////////////////
 // Add to queue
 addToQueue(line[] _arrayOfLines, int arraySize, line newElement) =>
@@ -67,13 +67,6 @@ if(not na(pivotLow))
 pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, finishLineOnClose, 200, true)
 pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, finishLineOnClose, 200, false)
 
-// TODO: update to use circles
-// if not na(pivotHighsCrossed)
-//     count = array.size(pivotHighsCrossed)
-//     if count > 0
-//         label.new(bar_index, high, yloc=yloc.abovebar, text = str.tostring(count), color = resistanceColour, textcolor = color.white)
-
-// if not na(pivotLowsCrossed)
-//     count = array.size(pivotLowsCrossed)
-//     if count > 0
-//         label.new(bar_index, low, yloc=yloc.belowbar, text = str.tostring(count), color = supportColour, textcolor = color.white, style = label.style_label_up)
+// Alerts
+alertcondition(pivotHighsCrossed > 0, title="Swept liquidity at highs", message="Swept liquidity at highs")
+alertcondition(pivotLowsCrossed > 0, title="Swept liquidity at lows", message="Swept liquidity at lows")
