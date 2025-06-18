@@ -6,11 +6,9 @@ indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
 
 // --- Input Parameters ---
 i_htf = input.timeframe("30", "Higher Timeframe (HTF)")
-
 i_maxC2BodyRatioC1 = input.float(50.0, "Max C2 Body % of C1", minval=1.0, maxval=100.0, step=5.0, tooltip="Maximum percentage the second candle's body can be relative to the first candle's body.")
-
-// New input for the minimum lower wick size on the third candle, in ticks
 i_minC3LowerWick = input.int(5, "Min C3 Lower Wick (ticks)", minval=0, tooltip="Minimum size of the third candle's lower wick/upper wick in ticks (price * ticksize).")
+isBacktestingEnabled = input.bool(false, "Backtest")
 
 // --- Helper Functions ---
 
@@ -165,85 +163,81 @@ calcProfit() =>
 
     [winTotal, lossTotal, winCount] // return
 
-totalTrades = trades.size()
-[winTotal, lossTotal, winCount] = calcProfit()
-float winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0.0
-float profitFactor = lossTotal > 0 ? winTotal / lossTotal : (winTotal > 0 ? 999999999 : 0.0) // Handle division by zero
+if(isBacktestingEnabled)
+    totalTrades = trades.size()
+    [winTotal, lossTotal, winCount] = calcProfit()
+    float winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0.0
+    float profitFactor = lossTotal > 0 ? winTotal / lossTotal : (winTotal > 0 ? 999999999 : 0.0) // Handle division by zero
 
-// Stats Display
-tablePosition = input.string("Top Right", "Table Position", options=["Bottom Right", "Top Right"])
+    // Stats Display
+    tablePosition = input.string("Top Right", "Table Position", options=["Bottom Right", "Top Right"])
 
-var table tradeStatsTable = na
-string tablePos = na
-if tablePosition == "Bottom Right"
-    tablePos := position.bottom_right
-else
-    tablePos := position.top_right
+    var table tradeStatsTable = na
+    string tablePos = na
+    if tablePosition == "Bottom Right"
+        tablePos := position.bottom_right
+    else
+        tablePos := position.top_right
 
-if na(tradeStatsTable)
-    tradeStatsTable := table.new(
-         position = tablePos, 
-         columns = 2, 
-         rows = 7, 
-         bgcolor = color.rgb(40, 44, 52, 90), // Dark background with some transparency
-         frame_color = color.white, 
-         frame_width = 1, 
-         border_color = color.white, 
-         border_width = 1
-         )
+    if na(tradeStatsTable)
+        tradeStatsTable := table.new(position = tablePos, columns = 2, rows = 7, bgcolor = color.rgb(40, 44, 52, 90), frame_color = color.white, frame_width = 1, border_color = color.white, border_width = 1)
 
-rowTextColour = color.black
+    rowTextColour = color.black
 
-// Header Row
-table.cell(tradeStatsTable, 0, 0, "Metric",   text_color = color.white, text_halign = text.align_left, text_size = size.normal, bgcolor = color.rgb(60, 64, 72))
-table.cell(tradeStatsTable, 1, 0, "Value",    text_color = color.white, text_halign = text.align_right, text_size = size.normal, bgcolor = color.rgb(60, 64, 72))
+    // Header Row
+    table.cell(tradeStatsTable, 0, 0, "Metric",   text_color = color.white, text_halign = text.align_left, text_size = size.normal, bgcolor = color.rgb(60, 64, 72))
+    table.cell(tradeStatsTable, 1, 0, "Value",    text_color = color.white, text_halign = text.align_right, text_size = size.normal, bgcolor = color.rgb(60, 64, 72))
 
-// Number of Trades
-table.cell(tradeStatsTable, 0, 1, "Trades:",  text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
-table.cell(tradeStatsTable, 1, 1, str.tostring(totalTrades), text_color = color.aqua, text_halign = text.align_right, text_size = size.normal)
+    // Number of Trades
+    table.cell(tradeStatsTable, 0, 1, "Trades:",  text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
+    table.cell(tradeStatsTable, 1, 1, str.tostring(totalTrades), text_color = color.aqua, text_halign = text.align_right, text_size = size.normal)
 
-// Win Rate
-table.cell(tradeStatsTable, 0, 2, "Win Rate:", text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
-table.cell(tradeStatsTable, 1, 2, str.tostring(winRate, "#.##") + "%", text_color = color.lime, text_halign = text.align_right, text_size = size.normal)
+    // Win Rate
+    table.cell(tradeStatsTable, 0, 2, "Win Rate:", text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
+    table.cell(tradeStatsTable, 1, 2, str.tostring(winRate, "#.##") + "%", text_color = color.lime, text_halign = text.align_right, text_size = size.normal)
 
-// Total Wins
-table.cell(tradeStatsTable, 0, 3, "Win Total:",  text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
-table.cell(tradeStatsTable, 1, 3, str.tostring(winTotal, "#.##"), text_color = (winTotal >= 0 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
+    // Total Wins
+    table.cell(tradeStatsTable, 0, 3, "Win Total:",  text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
+    table.cell(tradeStatsTable, 1, 3, str.tostring(winTotal, "#.##"), text_color = (winTotal >= 0 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
 
-// Total Loss
-table.cell(tradeStatsTable, 0, 4, "Loss Total:",  text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
-table.cell(tradeStatsTable, 1, 4, str.tostring(lossTotal, "#.##"), text_color = (lossTotal >= 0 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
+    // Total Loss
+    table.cell(tradeStatsTable, 0, 4, "Loss Total:",  text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
+    table.cell(tradeStatsTable, 1, 4, str.tostring(lossTotal, "#.##"), text_color = (lossTotal >= 0 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
 
-// Profit Factor
-table.cell(tradeStatsTable, 0, 5, "Profit Factor:", text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
-table.cell(tradeStatsTable, 1, 5, str.tostring(profitFactor, "#.##"), text_color = (profitFactor >= 1 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
+    // Profit Factor
+    table.cell(tradeStatsTable, 0, 5, "Profit Factor:", text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
+    table.cell(tradeStatsTable, 1, 5, str.tostring(profitFactor, "#.##"), text_color = (profitFactor >= 1 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
 
-// Profit
-profit = winTotal - lossTotal
-table.cell(tradeStatsTable, 0, 6, "Profit", text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
-table.cell(tradeStatsTable, 1, 6, str.tostring(profit, "#.##"), text_color = (profit >= 1 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
+    // Profit
+    profit = winTotal - lossTotal
+    table.cell(tradeStatsTable, 0, 6, "Profit", text_color = rowTextColour, text_halign = text.align_left, text_size = size.normal)
+    table.cell(tradeStatsTable, 1, 6, str.tostring(profit, "#.##"), text_color = (profit >= 1 ? color.lime : color.red), text_halign = text.align_right, text_size = size.normal)
 
-///////////////////////
-// Trades
-// TODO: maybe move TP and SL into the Trade type?
-var takeProfit = 0.0
-var stopLoss = 0.0
-var qty = 5
+    ///////////////////////
+    // Trades
+    // TODO: maybe move TP and SL into the Trade type?
+    // TODO: draw trades on chart
+    var takeProfit = 0.0
+    var stopLoss = 0.0
+    var qty = 5
+    var rr = 2
 
-if(morningStarDetected)
-    enterTrade(c3_close, qty, true)
-    takeProfit := c1_high
-    stopLoss := c2_low
+    if(morningStarDetected)
+        entry = c3_close
+        enterTrade(entry, qty, true)
+        stopLoss := c3_low
+        takeProfit := entry + math.abs(entry - stopLoss)*rr
 
-if(isLongTradeOpen())
-    if(c3_close >= takeProfit or c3_close <= stopLoss)
-        exitTrade(c3_close)
+    if(isLongTradeOpen())
+        if(c3_close >= takeProfit or c3_close <= stopLoss)
+            exitTrade(c3_close)
 
-if(eveningStarDetected)
-    enterTrade(c3_close, qty, false)
-    takeProfit := c1_low
-    stopLoss := c2_high
+    if(eveningStarDetected)
+        entry = c3_close
+        enterTrade(entry, qty, false)
+        stopLoss := c3_high
+        takeProfit := entry - math.abs(entry - stopLoss)*rr
 
-if(isShortTradeOpen())
-    if(c3_close <= takeProfit or c3_close >= stopLoss)
-        exitTrade(c3_close)
+    if(isShortTradeOpen())
+        if(c3_close <= takeProfit or c3_close >= stopLoss)
+            exitTrade(c3_close)
