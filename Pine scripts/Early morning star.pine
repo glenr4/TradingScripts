@@ -1,5 +1,7 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © glenrutherford4
+// Note: in realtime, the trade box will disappear if the conditions for morning star no longer are true
+// but this does not close the trade. To fix this, need to re-draw the box on every tick in realtime.
 
 //@version=5
 indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
@@ -50,33 +52,23 @@ isC3BullishForming = f_isBullish(c3_open, c3_close)
 // Candle 3 relative to Candle 2's range
 isC3HigherLow = c3_low > c2_low
 
-// NEW CONDITION: Lower wick size for C3 (for Morning Star)
-// If the candle is bullish, the lower wick is open - low.
 // Check if the lower wick is greater than or equal to the user-defined minimum in ticks.
 isC3LowerWickSufficient = (c3_open - c3_low) >= (i_minC3LowerWick * syminfo.mintick)
 
 // Combine all conditions for Morning Star
 morningStar = isC1Bearish and isC2LowerLow and isC2LowerHigh and isC2BodySmallRelativeC1 and isC3BullishForming and isC3HigherLow and isC3LowerWickSufficient
 
-// Detect morning star only when the current HTF bar is the one that completes the pattern
 varip bool morningStarDetectedOneShot = false
 varip int morningStarDetectedBarIndex = 0
 varip int tradeId = 0
 
-// log.info("bar_index:" + str.tostring(bar_index))
-// log.info("morningStarDetectedBarIndex:" + str.tostring(morningStarDetectedBarIndex))
-
-// Required for realtime bar so that only one trade is taken per bar
+// Required so that only one trade is taken per bar
 if morningStarDetectedOneShot
     morningStarDetectedOneShot := false
-    // log.info("morningStarDetectedOneShot: " + str.tostring(morningStarDetectedOneShot))
 
 if morningStar and bar_index != morningStarDetectedBarIndex
     morningStarDetectedOneShot := true
     morningStarDetectedBarIndex := bar_index
-    // log.info("morningStarDetectedOneShot: " + str.tostring(morningStarDetectedOneShot))
-
-
 
 // --- Evening Star Pattern Detection ---
 var bool eveningStarDetected = false
@@ -98,8 +90,6 @@ isC3BearishForming = f_isBearish(c3_open, c3_close)
 // Candle 3 relative to Candle 2's range
 isC3LowerHigh = c3_high < c2_high
 
-// NEW CONDITION: Upper wick size for C3 (for Evening Star)
-// If the candle is bearish, the upper wick is high - open.
 // Check if the upper wick is greater than or equal to the user-defined minimum in ticks.
 isC3UpperWickSufficient = (c3_high - c3_open) >= (i_minC3LowerWick * syminfo.mintick)
 
@@ -130,6 +120,9 @@ isBacktestingEnabled = input.bool(false, "Enable backtesting", group = "Backtest
 rewardToRisk = input.float(2.0, "Reward to risk", step = 0.1, minval = 0.1, group = "Backtesting")
 tradeSize = input.int(5, "Trade size",group = "Backtesting")
 
+takeProfitColour = color.new(color.green, 50)
+stopLossColour = color.new(color.red, 50)
+
 type Trade
     float entry
     float exit
@@ -139,14 +132,6 @@ type Trade
 
 varip trades = array.new<Trade>()
 varip longTradeOpen = false
-
-isLongTradeOpen() =>
-    longTradeOpen
-    // if(trades.size() > 0)  
-    //     lastTrade = trades.last()
-    //     na(lastTrade.exit) and lastTrade.isLong // return
-    // else
-    //     false //return
 
 isShortTradeOpen() =>
     if(trades.size() > 0)  
@@ -161,6 +146,9 @@ exitTrade(float price) =>
         trade.exit := price
         trade.isWin := trade.isLong ? trade.exit >= trade.entry : trade.exit < trade.entry
         log.info("**exitTrade: " + str.tostring(price))
+        label.new(bar_index, c3_high, trade.isWin ? "Win" : "Loss", color = trade.isWin ? takeProfitColour : stopLossColour)
+
+
 
 enterTrade(float price, int qty, bool isLong) =>
     // Close last trade if open
@@ -240,8 +228,7 @@ if(isBacktestingEnabled)
     varip stopLoss = 0.0
     entryOpenOffset = 0.3
     minStopLossSize = 1.0
-    takeProfitColour = color.new(color.green, 50)
-    stopLossColour = color.new(color.red, 50)
+
 
     if(morningStarDetectedOneShot and not longTradeOpen)
         entry = c3_open + entryOpenOffset
