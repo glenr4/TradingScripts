@@ -119,6 +119,11 @@ alertcondition(eveningStarDetected, title="Early Evening Star Alert", message="E
 isBacktestingEnabled = input.bool(false, "Enable backtesting", group = "Backtesting")
 rewardToRisk = input.float(2.0, "Reward to risk", step = 0.1, minval = 0.1, group = "Backtesting")
 tradeSize = input.int(5, "Trade size",group = "Backtesting")
+contractMultiplier = input.int(10, "Contract multiplier", group = "Backtesting")
+
+// TODO: maybe move TP and SL into the Trade type?
+varip takeProfit = 0.0
+varip stopLoss = 0.0
 
 takeProfitColour = color.new(color.green, 50)
 stopLossColour = color.new(color.red, 50)
@@ -146,9 +151,12 @@ exitTrade(float price) =>
         trade.exit := price
         trade.isWin := trade.isLong ? trade.exit >= trade.entry : trade.exit < trade.entry
         log.info("**exitTrade: " + str.tostring(price))
-        label.new(bar_index, c3_high, trade.isWin ? "Win" : "Loss", color = trade.isWin ? takeProfitColour : stopLossColour)
-
-
+        label.new(bar_index, c3_high, (trade.isWin ? "Win" : "Loss"), color = trade.isWin ? takeProfitColour : stopLossColour)
+        log.info("Result: " + (trade.isWin ? "Win" : "Loss"))
+        profit = math.abs(trade.exit - trade.entry) * trade.qty * contractMultiplier
+        log.info("Profit: $" + str.tostring(trade.isWin ? profit : -1*profit))
+        log.info("Risk:" + str.tostring(math.abs(trade.entry - stopLoss)))
+        log.info("Reward" + str.tostring(math.abs(trade.entry - takeProfit)))
 
 enterTrade(float price, int qty, bool isLong) =>
     // Close last trade if open
@@ -165,10 +173,10 @@ calcProfit() =>
     for [index, trade] in trades
         if(not na(trade.isWin))
             if(trade.isWin)
-                winTotal += math.abs(trade.exit - trade.entry)*trade.qty
+                winTotal += math.abs(trade.exit - trade.entry) * trade.qty * contractMultiplier
                 winCount += 1
             else
-                lossTotal += math.abs(trade.exit - trade.entry)*trade.qty
+                lossTotal += math.abs(trade.exit - trade.entry) * trade.qty * contractMultiplier
 
     [winTotal, lossTotal, winCount] // return
 
@@ -224,9 +232,6 @@ if(isBacktestingEnabled)
 
     ///////////////////////
     // Trades
-    // TODO: maybe move TP and SL into the Trade type?
-    varip takeProfit = 0.0
-    varip stopLoss = 0.0
     entryOpenOffset = 0.3
     minStopLossSize = 1.0
 
