@@ -217,26 +217,39 @@ if(isBacktestingEnabled)
     // Trades
     // TODO: maybe move TP and SL into the Trade type?
     // TODO: draw trades on chart
-    var takeProfit = 0.0
-    var stopLoss = 0.0
-    var qty = 5
-    var rr = 2
+    // TODO: is it valid to use c3_close for exit? Drawing the trades on the chart should confirm
+    takeProfit = 0.0
+    stopLoss = 0.0
+    qty = 5
+    rr = 2
+    entryOpenOffset = 0.3
+    minStopLossSize = 1.0
+    takeProfitColour = color.new(color.green, 50)
+    stopLossColour = color.new(color.red, 50)
 
     if(morningStarDetected)
-        entry = c3_close
+        entry = c3_open + entryOpenOffset
         enterTrade(entry, qty, true)
-        stopLoss := c3_low
-        takeProfit := entry + math.abs(entry - stopLoss)*rr
+
+        stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize)
+        stopLoss := entry - stopLossSize
+        takeProfit := entry + stopLossSize*rr
+        box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor =  takeProfitColour, border_color = takeProfitColour)
+        box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
 
     if(isLongTradeOpen())
         if(c3_close >= takeProfit or c3_close <= stopLoss)
             exitTrade(c3_close)
 
     if(eveningStarDetected)
-        entry = c3_close
+        entry = c3_open - entryOpenOffset
         enterTrade(entry, qty, false)
-        stopLoss := c3_high
-        takeProfit := entry - math.abs(entry - stopLoss)*rr
+
+        stopLossSize = math.max(math.abs(entry - c3_high), minStopLossSize)
+        stopLoss := entry + stopLossSize
+        takeProfit := entry - stopLossSize*rr
+        box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor = takeProfitColour, border_color = takeProfitColour)
+        box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
 
     if(isShortTradeOpen())
         if(c3_close <= takeProfit or c3_close >= stopLoss)
