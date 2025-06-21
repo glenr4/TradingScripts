@@ -3,6 +3,9 @@
 // Note: in realtime, the trade box will disappear if the conditions for morning star no longer are true
 // but this does not close the trade. To fix this, need to re-draw the box on every tick in realtime.
 
+// TODO: instead of using fixed contract size, use risk in $
+// TODO: update code to enable short trades
+
 //@version=5
 indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
 
