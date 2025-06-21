@@ -8,7 +8,6 @@ indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
 i_htf = input.timeframe("30", "Higher Timeframe (HTF)")
 i_maxC2BodyRatioC1 = input.float(50.0, "Max C2 Body % of C1", minval=1.0, maxval=100.0, step=5.0, tooltip="Maximum percentage the second candle's body can be relative to the first candle's body.")
 i_minC3LowerWick = input.int(5, "Min C3 Lower Wick (ticks)", minval=0, tooltip="Minimum size of the third candle's lower wick/upper wick in ticks (price * ticksize).")
-isBacktestingEnabled = input.bool(false, "Backtest")
 
 // --- Helper Functions ---
 
@@ -114,6 +113,10 @@ alertcondition(eveningStarDetected, title="Early Evening Star Alert", message="E
 
 ///////////////
 // Trading Engine
+isBacktestingEnabled = input.bool(false, "Enable backtesting", group = "Backtesting")
+rewardToRisk = input.float(2.0, "Reward to risk", step = 0.1, minval = 0.1, group = "Backtesting")
+tradeSize = input.int(5, "Trade size",group = "Backtesting")
+
 type Trade
     float entry
     float exit
@@ -220,8 +223,6 @@ if(isBacktestingEnabled)
     // TODO: is it valid to use c3_close for exit? Drawing the trades on the chart should confirm
     takeProfit = 0.0
     stopLoss = 0.0
-    qty = 5
-    rr = 2
     entryOpenOffset = 0.3
     minStopLossSize = 1.0
     takeProfitColour = color.new(color.green, 50)
@@ -229,11 +230,11 @@ if(isBacktestingEnabled)
 
     if(morningStarDetected)
         entry = c3_open + entryOpenOffset
-        enterTrade(entry, qty, true)
+        enterTrade(entry, tradeSize, true)
 
         stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize)
         stopLoss := entry - stopLossSize
-        takeProfit := entry + stopLossSize*rr
+        takeProfit := entry + stopLossSize*rewardToRisk
         box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor =  takeProfitColour, border_color = takeProfitColour)
         box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
 
@@ -243,11 +244,11 @@ if(isBacktestingEnabled)
 
     if(eveningStarDetected)
         entry = c3_open - entryOpenOffset
-        enterTrade(entry, qty, false)
+        enterTrade(entry, tradeSize, false)
 
         stopLossSize = math.max(math.abs(entry - c3_high), minStopLossSize)
         stopLoss := entry + stopLossSize
-        takeProfit := entry - stopLossSize*rr
+        takeProfit := entry - stopLossSize*rewardToRisk
         box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor = takeProfitColour, border_color = takeProfitColour)
         box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
 
