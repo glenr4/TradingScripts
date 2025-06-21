@@ -163,11 +163,12 @@ calcProfit() =>
     lossTotal = 0.0
     winCount = 0
     for [index, trade] in trades
-        if(trade.isWin)
-            winTotal += math.abs(trade.exit - trade.entry)*trade.qty
-            winCount += 1
-        else
-            lossTotal += math.abs(trade.exit - trade.entry)*trade.qty
+        if(not na(trade.isWin))
+            if(trade.isWin)
+                winTotal += math.abs(trade.exit - trade.entry)*trade.qty
+                winCount += 1
+            else
+                lossTotal += math.abs(trade.exit - trade.entry)*trade.qty
 
     [winTotal, lossTotal, winCount] // return
 
