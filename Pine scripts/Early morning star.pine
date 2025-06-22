@@ -240,6 +240,11 @@ if(isBacktestingEnabled)
     // Enter Morning Star
     if(morningStarDetectedOneShot and not isLongTradeOpen)
         entry = c3_open + entryOpenOffset
+
+        // Close short trade if open
+        if(isShortTradeOpen)
+            exitTrade(entry)
+
         stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize) + syminfo.mintick // if stopLoss = candle low, then it will exit immediately for a loss on historical candles
         stopLoss = entry - stopLossSize
         takeProfit = entry + stopLossSize * rewardToRisk
@@ -264,6 +269,11 @@ if(isBacktestingEnabled)
     // Enter Evening Star
     if(eveningStarDetectedOneShot and not isShortTradeOpen)
         entry = c3_open - entryOpenOffset
+
+        // Close long trade if open
+        if(isLongTradeOpen)
+            exitTrade(entry)
+
         stopLossSize = math.max(math.abs(entry - c3_high), minStopLossSize) + syminfo.mintick  // if stopLoss = candle high, then it will exit immediately for a loss on historical candles
         stopLoss = entry + stopLossSize 
         takeProfit = entry - stopLossSize * rewardToRisk
