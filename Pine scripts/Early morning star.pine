@@ -242,8 +242,8 @@ if(isBacktestingEnabled)
     if(morningStarDetectedOneShot and not longTradeOpen)
         entry = c3_open + entryOpenOffset
         stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize)
-        stopLoss = entry - stopLossSize
-        takeProfit = entry + stopLossSize*rewardToRisk
+        stopLoss = entry - stopLossSize - syminfo.mintick // if stopLoss = candle low, then it will exit immediately for a loss on historical candles
+        takeProfit = entry + stopLossSize * rewardToRisk
 
         enterTrade(entry, tradeSize, true, takeProfit, stopLoss)
         longTradeOpen := true
@@ -253,11 +253,11 @@ if(isBacktestingEnabled)
 
     if(longTradeOpen)
         trade = trades.last()
-        if(c3_close >= trade.takeProfit)
+        if(c3_high >= trade.takeProfit)
             exitTrade(trade.takeProfit)
             longTradeOpen := false
         
-        if(c3_close <= trade.stopLoss)
+        else if(c3_low <= trade.stopLoss)
             exitTrade(trade.stopLoss)
             longTradeOpen := false
 
