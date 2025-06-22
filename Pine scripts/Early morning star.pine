@@ -99,11 +99,16 @@ isC3UpperWickSufficient = (c3_high - c3_open) >= (i_minC3LowerWick * syminfo.min
 // Combine all conditions for Evening Star
 eveningStar = isC1Bullish and isC2HigherLow and isC2HigherHigh and isC2BodySmallRelativeC1_ES and isC3BearishForming and isC3LowerHigh and isC3UpperWickSufficient
 
-// Detect evening star only when the current HTF bar is the one that completes the pattern
-if eveningStar and not eveningStarDetected
-    eveningStarDetected := true
-else if not eveningStar and eveningStarDetected
-    eveningStarDetected := false // Reset detection if pattern is no longer valid
+varip bool eveningStarDetectedOneShot = false
+varip int eveningStarDetectedBarIndex = 0
+
+// Required so that only one trade is taken per bar
+if eveningStarDetectedOneShot
+    eveningStarDetectedOneShot := false
+
+if eveningStar and bar_index != eveningStarDetectedBarIndex
+    eveningStarDetectedOneShot := true
+    eveningStarDetectedBarIndex := bar_index
 
 // --- Plotting and Alerts ---
 
@@ -111,11 +116,11 @@ else if not eveningStar and eveningStarDetected
 plotshape(morningStarDetectedOneShot, style=shape.triangleup, location=location.belowbar, color=color.rgb(33, 150, 243, 80), size=size.small, title="Early Morning Star")
 
 // Plot Evening Star pattern
-plotshape(eveningStarDetected, style=shape.triangledown, location=location.abovebar, color=color.rgb(244, 67, 54, 80), size=size.small, title="Early Evening Star")
+plotshape(eveningStarDetectedOneShot, style=shape.triangledown, location=location.abovebar, color=color.rgb(244, 67, 54, 80), size=size.small, title="Early Evening Star")
 
 // Alerts
 alertcondition(morningStarDetectedOneShot, title="Early Morning Star Alert", message="Early Morning Star pattern detected on {{ticker}} {{interval}}!")
-alertcondition(eveningStarDetected, title="Early Evening Star Alert", message="Early Evening Star pattern detected on {{ticker}} {{interval}}!")
+alertcondition(eveningStarDetectedOneShot, title="Early Evening Star Alert", message="Early Evening Star pattern detected on {{ticker}} {{interval}}!")
 
 ///////////////
 // Trading Engine
@@ -138,13 +143,7 @@ type Trade
 
 varip trades = array.new<Trade>()
 varip longTradeOpen = false
-
-isShortTradeOpen() =>
-    if(trades.size() > 0)  
-        lastTrade = trades.last()
-        na(lastTrade.exit) and not lastTrade.isLong // return
-    else
-        false //return
+varip shortTradeOpen = false
 
 exitTrade(float price) =>
     if(trades.size() > 0)    
@@ -238,7 +237,7 @@ if(isBacktestingEnabled)
     entryOpenOffset = 0.3
     minStopLossSize = 1.0
 
-
+    // Enter Morning Star
     if(morningStarDetectedOneShot and not longTradeOpen)
         entry = c3_open + entryOpenOffset
         stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize)
@@ -251,6 +250,7 @@ if(isBacktestingEnabled)
         box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor =  takeProfitColour, border_color = takeProfitColour)
         box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
 
+    // Exit Morning Star
     if(longTradeOpen)
         trade = trades.last()
         if(c3_high >= trade.takeProfit)
@@ -261,16 +261,26 @@ if(isBacktestingEnabled)
             exitTrade(trade.stopLoss)
             longTradeOpen := false
 
-    // if(eveningStarDetected)
-    //     entry = c3_open - entryOpenOffset
-    //     enterTrade(entry, tradeSize, false)
+    // Enter Evening Star
+    if(eveningStarDetectedOneShot and not shortTradeOpen)
+        entry = c3_open - entryOpenOffset
+        stopLossSize = math.max(math.abs(entry - c3_high), minStopLossSize)
+        stopLoss = entry + stopLossSize + syminfo.mintick  // if stopLoss = candle high, then it will exit immediately for a loss on historical candles
+        takeProfit = entry - stopLossSize * rewardToRisk
 
-    //     stopLossSize = math.max(math.abs(entry - c3_high), minStopLossSize)
-    //     stopLoss := entry + stopLossSize
-    //     takeProfit := entry - stopLossSize*rewardToRisk
-    //     box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor = takeProfitColour, border_color = takeProfitColour)
-    //     box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
+        enterTrade(entry, tradeSize, false, takeProfit, stopLoss)
+        shortTradeOpen := true
 
-    // if(isShortTradeOpen())
-    //     if(c3_close <= takeProfit or c3_close >= stopLoss)
-    //         exitTrade(c3_close)
+        box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor = takeProfitColour, border_color = takeProfitColour)
+        box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
+
+     // Exit Evening Star
+    if(shortTradeOpen)
+        trade = trades.last()
+        if(c3_low <= trade.takeProfit)
+            exitTrade(trade.takeProfit)
+            shortTradeOpen := false
+        
+        else if(c3_high >= trade.stopLoss)
+            exitTrade(trade.stopLoss)
+            shortTradeOpen := false
