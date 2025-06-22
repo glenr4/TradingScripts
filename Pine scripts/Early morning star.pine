@@ -151,11 +151,13 @@ exitTrade(float price) =>
         trade = trades.last()
         trade.exit := price
         trade.isWin := trade.isLong ? trade.exit >= trade.entry : trade.exit < trade.entry
+        profit = math.abs(trade.exit - trade.entry) * trade.qty * contractMultiplier * (trade.isWin ? 1 : -1)
+        labelText = (trade.isWin ? "Win" : "Loss") + ": $" + str.tostring(profit)
+        label.new(bar_index, c3_high, labelText, color = trade.isWin ? takeProfitColour : stopLossColour)
+
         log.info("**exitTrade: " + str.tostring(price))
-        label.new(bar_index, c3_high, (trade.isWin ? "Win" : "Loss"), color = trade.isWin ? takeProfitColour : stopLossColour)
         log.info("Result: " + (trade.isWin ? "Win" : "Loss"))
-        profit = math.abs(trade.exit - trade.entry) * trade.qty * contractMultiplier
-        log.info("Profit: $" + str.tostring(trade.isWin ? profit : -1*profit))
+        log.info("Profit: $" + str.tostring(profit))
         log.info("Risk:" + str.tostring(math.abs(trade.entry - trade.stopLoss)))
         log.info("Reward: " + str.tostring(math.abs(trade.entry - trade.takeProfit)))
 
@@ -251,8 +253,12 @@ if(isBacktestingEnabled)
 
     if(longTradeOpen)
         trade = trades.last()
-        if(c3_close >= trade.takeProfit or c3_close <= trade.stopLoss)
-            exitTrade(c3_close)
+        if(c3_close >= trade.takeProfit)
+            exitTrade(trade.takeProfit)
+            longTradeOpen := false
+        
+        if(c3_close <= trade.stopLoss)
+            exitTrade(trade.stopLoss)
             longTradeOpen := false
 
     // if(eveningStarDetected)
