@@ -124,10 +124,6 @@ rewardToRisk = input.float(2.0, "Reward to risk", step = 0.1, minval = 0.1, grou
 tradeSize = input.int(5, "Trade size",group = "Backtesting")
 contractMultiplier = input.int(10, "Contract multiplier", group = "Backtesting")
 
-// TODO: maybe move TP and SL into the Trade type?
-varip takeProfit = 0.0
-varip stopLoss = 0.0
-
 takeProfitColour = color.new(color.green, 50)
 stopLossColour = color.new(color.red, 50)
 
@@ -137,6 +133,8 @@ type Trade
     int qty
     bool isLong
     bool isWin
+    float takeProfit
+    float stopLoss
 
 varip trades = array.new<Trade>()
 varip longTradeOpen = false
@@ -158,14 +156,14 @@ exitTrade(float price) =>
         log.info("Result: " + (trade.isWin ? "Win" : "Loss"))
         profit = math.abs(trade.exit - trade.entry) * trade.qty * contractMultiplier
         log.info("Profit: $" + str.tostring(trade.isWin ? profit : -1*profit))
-        log.info("Risk:" + str.tostring(math.abs(trade.entry - stopLoss)))
-        log.info("Reward" + str.tostring(math.abs(trade.entry - takeProfit)))
+        log.info("Risk:" + str.tostring(math.abs(trade.entry - trade.stopLoss)))
+        log.info("Reward: " + str.tostring(math.abs(trade.entry - trade.takeProfit)))
 
-enterTrade(float price, int qty, bool isLong) =>
+enterTrade(float price, int qty, bool isLong, float takeProfit, float stopLoss) =>
     // Close last trade if open
     // if(isLongTradeOpen() or isShortTradeOpen())
     //     exitTrade(price)
-    trades.push(Trade.new(price, na, qty, isLong, na))
+    trades.push(Trade.new(price, na, qty, isLong, na, takeProfit, stopLoss))
     log.info("*****enterTrade: " + str.tostring(price))
 
 // Generate Stats
@@ -184,7 +182,7 @@ calcProfit() =>
     [winTotal, lossTotal, winCount] // return
 
 if(isBacktestingEnabled)
-    totalTrades = trades.size()
+    totalTrades = trades.size() 
     [winTotal, lossTotal, winCount] = calcProfit()
     float winRate = totalTrades > 0 ? (winCount / totalTrades) * 100 : 0.0
     float profitFactor = lossTotal > 0 ? winTotal / lossTotal : (winTotal > 0 ? 999999999 : 0.0) // Handle division by zero
@@ -241,17 +239,19 @@ if(isBacktestingEnabled)
 
     if(morningStarDetectedOneShot and not longTradeOpen)
         entry = c3_open + entryOpenOffset
-        enterTrade(entry, tradeSize, true)
+        stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize)
+        stopLoss = entry - stopLossSize
+        takeProfit = entry + stopLossSize*rewardToRisk
+
+        enterTrade(entry, tradeSize, true, takeProfit, stopLoss)
         longTradeOpen := true
 
-        stopLossSize = math.max(math.abs(entry - c3_low), minStopLossSize)
-        stopLoss := entry - stopLossSize
-        takeProfit := entry + stopLossSize*rewardToRisk
         box.new(bar_index, takeProfit, bar_index+3, entry, bgcolor =  takeProfitColour, border_color = takeProfitColour)
         box.new(bar_index, entry, bar_index+3, stopLoss, bgcolor = stopLossColour, border_color = stopLossColour)
 
     if(longTradeOpen)
-        if(c3_close >= takeProfit or c3_close <= stopLoss)
+        trade = trades.last()
+        if(c3_close >= trade.takeProfit or c3_close <= trade.stopLoss)
             exitTrade(c3_close)
             longTradeOpen := false
 
