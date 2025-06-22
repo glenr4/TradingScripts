@@ -7,7 +7,7 @@
 // TODO: update code to enable short trades
 
 //@version=5
-indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true)
+indicator("Early Morning Star", shorttitle="Early Morning Star", overlay=true, max_boxes_count = 500, max_labels_count = 500)
 
 // --- Input Parameters ---
 i_htf = input.timeframe("30", "Higher Timeframe (HTF)")
