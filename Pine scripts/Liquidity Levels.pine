@@ -32,11 +32,9 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool isPivotHigh) =>
             x1 = line.get_x1(_currentLine)
             price = line.get_price(_currentLine, x1)
 
-            // Crossed from above
-            _lineCrossedByUpperWick = open > _lineLevel and low < _lineLevel and bar_index != line.get_x1(_currentLine)
-            
-            // Crossed from below
-            _lineCrossedByLowerWick = open < _lineLevel and high > _lineLevel and bar_index != line.get_x1(_currentLine)
+            // Detect level cross
+            _lineCrossedByUpperWick = isPivotHigh and high > _lineLevel and bar_index != line.get_x1(_currentLine)
+            _lineCrossedByLowerWick = not isPivotHigh and low < _lineLevel and bar_index != line.get_x1(_currentLine)
 
             if (_lineCrossedByUpperWick or _lineCrossedByLowerWick)
                 array.remove(_arrayOfLines, _i)
