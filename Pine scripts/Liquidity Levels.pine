@@ -4,7 +4,7 @@
 //@version=5
 indicator("Liquidity Levels", overlay = true, max_lines_count = 500)
 
-sideBars = input(2, "Bars either side of pivot point")
+sideBars = input(1, "Bars either side of pivot point")
 fixedArraySize = input(10, "Number of pivot lines to extend")
 resistanceColour = input.color(#4caf50, title="Resistance Colour")
 supportColour = input.color(#d809fc, title="Support Colour")
