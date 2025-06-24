@@ -4,24 +4,22 @@
 //@version=5
 indicator("Liquidity Levels", overlay = true, max_lines_count = 500)
 
-leftBars = input(2, "Bars to left of pivot peak")
-rightBars = input(2, "Bars to left of pivot peak")
+sideBars = input(2, "Bars either side of pivot point")
 fixedArraySize = input(10, "Number of pivot lines to extend")
-finishLineOnClose = input.bool(false, "Finish line on close")
+finishLineOnClose = input.bool(false, "Finish line on cross by close")
 resistanceColour = input.color(#4caf50, title="Resistance Colour")
 supportColour = input.color(#d809fc, title="Support Colour")
 
 
-pivotHigh = ta.pivothigh(high, leftBars, rightBars)
+pivotHigh = ta.pivothigh(high, sideBars, sideBars)
 
-pivotLow = ta.pivotlow(low, leftBars, rightBars)
+pivotLow = ta.pivotlow(low, sideBars, sideBars)
 
 
 //////////////////////////////
-// Extend lines until they are crossed (by close)
-// https://www.tradingview.com/pine-script-docs/en/v5/language/Loops.html
-// https://stackoverflow.com/a/68733918
-adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, int fixedExtensionLength, bool isPivotHigh) =>
+// Extend lines until they are crossed
+// Original loop code: https://stackoverflow.com/a/68733918
+adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, bool isPivotHigh) =>
     int crossedLineValues = 0
     int _qtyOfLines = array.size(_arrayOfLines)
 
@@ -32,13 +30,14 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, in
             
             // Extend to current bar 
             line.set_x2(_currentLine, bar_index)
+            x1 = line.get_x1(_currentLine)
+            price = line.get_price(_currentLine, x1)
 
-            _lineCrossedByClose = math.sign(close[1] - _lineLevel) != math.sign(close - _lineLevel) and bar_index != line.get_x1(_currentLine)
+            // Crossed from above
+            _lineCrossedByUpperWick = open > _lineLevel and low < _lineLevel and bar_index != line.get_x1(_currentLine)
+            _lineCrossedByLowerWick = open < _lineLevel and high > _lineLevel and bar_index != line.get_x1(_currentLine)
 
-            _lineCrossedByUpperWick =  math.sign(high[1] - _lineLevel) != math.sign(high - _lineLevel) and bar_index != line.get_x1(_currentLine)
-            _lineCrossedByLowerWick = math.sign(low[1] - _lineLevel) != math.sign(low - _lineLevel) and bar_index != line.get_x1(_currentLine)
-            
-            if (stopExtensionOnCloseCross and _lineCrossedByClose) or (not stopExtensionOnCloseCross and (_lineCrossedByUpperWick or _lineCrossedByLowerWick or _lineCrossedByClose))
+            if (not stopExtensionOnCloseCross and (_lineCrossedByUpperWick or _lineCrossedByLowerWick))
                 array.remove(_arrayOfLines, _i)
                 crossedLineValues += 1
 
@@ -49,7 +48,7 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, in
 // Add to queue
 addToQueue(line[] _arrayOfLines, int arraySize, line newElement) =>
     if _arrayOfLines.size() >= arraySize
-        _arrayOfLines.shift()   // remove oldest newElement
+        _arrayOfLines.shift()   // remove oldest element
     _arrayOfLines.push(newElement)
 
 ////////////////////////////
@@ -59,13 +58,13 @@ var line[] pivotLows = array.new_line(0)
 
 // Add lines 
 if(not na(pivotHigh))
-    addToQueue(pivotHighs, fixedArraySize, line.new(x1 = bar_index - rightBars, y1=high[rightBars], x2=bar_index + 20, y2= high[rightBars], style=line.style_dotted, color=resistanceColour, width = 2)) 
+    addToQueue(pivotHighs, fixedArraySize, line.new(x1 = bar_index - sideBars, y1=high[sideBars], x2=bar_index, y2= high[sideBars], style=line.style_dotted, color=resistanceColour, width = 2)) 
 if(not na(pivotLow))
-    addToQueue(pivotLows, fixedArraySize, line.new(x1 = bar_index - rightBars, y1=low[rightBars], x2=bar_index + 20, y2= low[rightBars], style=line.style_dotted, color=supportColour, width = 2)) 
+    addToQueue(pivotLows, fixedArraySize, line.new(x1 = bar_index - sideBars, y1=low[sideBars], x2=bar_index, y2= low[sideBars], style=line.style_dotted, color=supportColour, width = 2)) 
 
 // Adjust line length of all lines
-pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, finishLineOnClose, 200, true)
-pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, finishLineOnClose, 200, false)
+pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, finishLineOnClose, true)
+pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, finishLineOnClose, false)
 
 // Alerts
 alertcondition(pivotHighsCrossed > 0, title="Swept liquidity at highs", message="Swept liquidity at highs")
