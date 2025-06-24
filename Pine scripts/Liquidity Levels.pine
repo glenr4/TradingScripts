@@ -6,7 +6,6 @@ indicator("Liquidity Levels", overlay = true, max_lines_count = 500)
 
 sideBars = input(2, "Bars either side of pivot point")
 fixedArraySize = input(10, "Number of pivot lines to extend")
-finishLineOnClose = input.bool(false, "Finish line on cross by close")
 resistanceColour = input.color(#4caf50, title="Resistance Colour")
 supportColour = input.color(#d809fc, title="Support Colour")
 
@@ -19,7 +18,7 @@ pivotLow = ta.pivotlow(low, sideBars, sideBars)
 //////////////////////////////
 // Extend lines until they are crossed
 // Original loop code: https://stackoverflow.com/a/68733918
-adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, bool isPivotHigh) =>
+adjustHorizontalLineEnd(line[] _arrayOfLines, bool isPivotHigh) =>
     int crossedLineValues = 0
     int _qtyOfLines = array.size(_arrayOfLines)
 
@@ -35,9 +34,11 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool stopExtensionOnCloseCross, bo
 
             // Crossed from above
             _lineCrossedByUpperWick = open > _lineLevel and low < _lineLevel and bar_index != line.get_x1(_currentLine)
+            
+            // Crossed from below
             _lineCrossedByLowerWick = open < _lineLevel and high > _lineLevel and bar_index != line.get_x1(_currentLine)
 
-            if (not stopExtensionOnCloseCross and (_lineCrossedByUpperWick or _lineCrossedByLowerWick))
+            if (_lineCrossedByUpperWick or _lineCrossedByLowerWick)
                 array.remove(_arrayOfLines, _i)
                 crossedLineValues += 1
 
@@ -63,8 +64,8 @@ if(not na(pivotLow))
     addToQueue(pivotLows, fixedArraySize, line.new(x1 = bar_index - sideBars, y1=low[sideBars], x2=bar_index, y2= low[sideBars], style=line.style_dotted, color=supportColour, width = 2)) 
 
 // Adjust line length of all lines
-pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, finishLineOnClose, true)
-pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, finishLineOnClose, false)
+pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, true)
+pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, false)
 
 // Alerts
 alertcondition(pivotHighsCrossed > 0, title="Swept liquidity at highs", message="Swept liquidity at highs")
