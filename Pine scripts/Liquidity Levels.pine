@@ -21,6 +21,7 @@ pivotLow = ta.pivotlow(low, sideBars, sideBars)
 adjustHorizontalLineEnd(line[] _arrayOfLines, bool isPivotHigh) =>
     int crossedLineValues = 0
     int _qtyOfLines = array.size(_arrayOfLines)
+    var line removedLine = na
 
     if _qtyOfLines > 0
         for _i = _qtyOfLines - 1 to 0
@@ -37,12 +38,13 @@ adjustHorizontalLineEnd(line[] _arrayOfLines, bool isPivotHigh) =>
             _lineCrossedByLowerWick = not isPivotHigh and low < _lineLevel and bar_index != line.get_x1(_currentLine)
 
             if (_lineCrossedByUpperWick or _lineCrossedByLowerWick)
+                removedLine := _arrayOfLines.get(_i)
                 array.remove(_arrayOfLines, _i)
                 crossedLineValues += 1
 
-        crossedLineValues
+        removedLine
     else
-        crossedLineValues
+        removedLine
 ////////////////////////////
 // Add to queue
 addToQueue(line[] _arrayOfLines, int arraySize, line newElement) =>
@@ -62,9 +64,27 @@ if(not na(pivotLow))
     addToQueue(pivotLows, fixedArraySize, line.new(x1 = bar_index - sideBars, y1=low[sideBars], x2=bar_index, y2= low[sideBars], style=line.style_dotted, color=supportColour, width = 2)) 
 
 // Adjust line length of all lines
-pivotHighsCrossed = adjustHorizontalLineEnd(pivotHighs, true)
-pivotLowsCrossed = adjustHorizontalLineEnd(pivotLows, false)
+removedLineHigh = adjustHorizontalLineEnd(pivotHighs, true)
+removedLineLow = adjustHorizontalLineEnd(pivotLows, false)
 
 // Alerts
-alertcondition(pivotHighsCrossed > 0, title="Swept liquidity at highs", message="Swept liquidity at highs")
-alertcondition(pivotLowsCrossed > 0, title="Swept liquidity at lows", message="Swept liquidity at lows")
+alertcondition(not na(removedLineHigh), title="Swept liquidity at highs", message="Swept liquidity at highs")
+alertcondition(not na(removedLineLow), title="Swept liquidity at lows", message="Swept liquidity at lows")
+
+// Wick reversal at close (WIP)
+var line removedLineHighSaved = na
+var line removedLineLowSaved = na
+if not na(removedLineHigh)
+    removedLineHighSaved := removedLineHigh
+if not na(removedLineLow)
+    removedLineLowSaved := removedLineLow
+
+isBearishSignal = barstate.isconfirmed and not na(removedLineHighSaved) and high > removedLineHighSaved.get_y1() and close < removedLineHighSaved.get_y1()
+isBullishSignal = barstate.isconfirmed and not na(removedLineLowSaved) and low < removedLineLowSaved.get_y1() and close > removedLineLowSaved.get_y1()
+
+plotshape(isBearishSignal, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
+plotshape(isBullishSignal, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
+
+if barstate.isconfirmed
+    removedLineHighSaved := na
+    removedLineHighSaved := na
