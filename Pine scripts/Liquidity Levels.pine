@@ -11,83 +11,94 @@ supportColour = input.color(#d809fc, title="Liquidity at lows colour")
 
 
 pivotHigh = ta.pivothigh(high, sideBars, sideBars)
-
 pivotLow = ta.pivotlow(low, sideBars, sideBars)
 
 
 //////////////////////////////
-// Extend lines until they are crossed
-// Original loop code: https://stackoverflow.com/a/68733918
+// Extend lines until they are crossed and return the price level of the crossed line.
 adjustHorizontalLineEnd(line[] _arrayOfLines, bool isPivotHigh) =>
-    int crossedLineValues = 0
-    int _qtyOfLines = array.size(_arrayOfLines)
-    var line removedLine = na
+    float removedLevel = na
 
+    int _qtyOfLines = array.size(_arrayOfLines)
     if _qtyOfLines > 0
+        // Loop backwards as we are removing elements from the array.
         for _i = _qtyOfLines - 1 to 0
             line  _currentLine = array.get(_arrayOfLines, _i)
-            float _lineLevel   = line.get_price(_currentLine, bar_index)
             
-            // Extend to current bar 
+            // Extend the line to the current bar index.
             line.set_x2(_currentLine, bar_index)
-            x1 = line.get_x1(_currentLine)
-            price = line.get_price(_currentLine, x1)
 
-            // Detect level cross
-            _lineCrossedByUpperWick = isPivotHigh and high > _lineLevel and bar_index != line.get_x1(_currentLine)
-            _lineCrossedByLowerWick = not isPivotHigh and low < _lineLevel and bar_index != line.get_x1(_currentLine)
+            float _lineLevel   = line.get_price(_currentLine, bar_index)
 
-            if (_lineCrossedByUpperWick or _lineCrossedByLowerWick)
-                removedLine := _arrayOfLines.get(_i)
+            // Define the conditions for a line to be considered "crossed".
+            bool _lineCrossedByUpperWick = isPivotHigh and high > _lineLevel
+            bool _lineCrossedByLowerWick = not isPivotHigh and low < _lineLevel
+            // Ensure the cross is not on the same bar the pivot was formed on.
+            bool _isNewerBar = bar_index != line.get_x1(_currentLine)
+
+            if (_lineCrossedByUpperWick or _lineCrossedByLowerWick) and _isNewerBar
+                // A line has been crossed. Capture its price level.
+                // If multiple lines are crossed, this will save the last one found (which is the oldest pivot).
+                removedLevel := _lineLevel
+                // Remove the line from the array
                 array.remove(_arrayOfLines, _i)
-                crossedLineValues += 1
+                // NOTE: No 'break' here. We continue the loop to ensure ALL crossed lines on this bar are removed.
 
-        removedLine
-    else
-        removedLine
+    // Return the price level of the line that was removed on this bar.
+    removedLevel
 ////////////////////////////
-// Add to queue
+// Add to queue and manage the array size.
 addToQueue(line[] _arrayOfLines, int arraySize, line newElement) =>
-    if _arrayOfLines.size() >= arraySize
-        _arrayOfLines.shift()   // remove oldest element
-    _arrayOfLines.push(newElement)
+    // If the array is already at its maximum size...
+    if array.size(_arrayOfLines) >= arraySize
+        // ...remove the oldest line from the start of the array
+        line lineToRemove = array.shift(_arrayOfLines)
+    // Add the new line to the end of the array.
+    array.push(_arrayOfLines, newElement)
 
 ////////////////////////////
 
 var line[] pivotHighs = array.new_line(0)
 var line[] pivotLows = array.new_line(0)
 
-// Add lines 
+// Add new pivot lines to their respective arrays.
 if(not na(pivotHigh))
     addToQueue(pivotHighs, fixedArraySize, line.new(x1 = bar_index - sideBars, y1=high[sideBars], x2=bar_index, y2= high[sideBars], style=line.style_dotted, color=resistanceColour, width = 2)) 
 if(not na(pivotLow))
     addToQueue(pivotLows, fixedArraySize, line.new(x1 = bar_index - sideBars, y1=low[sideBars], x2=bar_index, y2= low[sideBars], style=line.style_dotted, color=supportColour, width = 2)) 
 
-// Adjust line length of all lines
-removedLineHigh = adjustHorizontalLineEnd(pivotHighs, true)
-removedLineLow = adjustHorizontalLineEnd(pivotLows, false)
+// Adjust line lengths and check for crossed levels.
+removedLevelHigh = adjustHorizontalLineEnd(pivotHighs, true)
+removedLevelLow = adjustHorizontalLineEnd(pivotLows, false)
 
-// Alerts
-alertcondition(not na(removedLineHigh), title="Swept liquidity at highs", message="Swept liquidity at highs")
-alertcondition(not na(removedLineLow), title="Swept liquidity at lows", message="Swept liquidity at lows")
+// --- Signal Logic ---
+// Use 'var' to create variables that persist between ticks on a real-time bar.
+var float removedLineHighSaved = na
+var float removedLineLowSaved = na
 
-// Wick reversal at close (WIP)
-var line removedLineHighSaved = na
-var line removedLineLowSaved = na
-if not na(removedLineHigh)
-    removedLineHighSaved := removedLineHigh
-if not na(removedLineLow)
-    removedLineLowSaved := removedLineLow
-
-log.info("Highs set: " + str.tostring(not na(removedLineHigh)) + ", " + str.tostring(not na(removedLineHighSaved)))
-log.info("Lows set: " + str.tostring(not na(removedLineLow)) + ", " + str.tostring(not na(removedLineLowSaved)))
-
-isBearishSignal = barstate.isconfirmed and not na(removedLineHighSaved) and high > removedLineHighSaved.get_y1() and close < removedLineHighSaved.get_y1()
-isBullishSignal = barstate.isconfirmed and not na(removedLineLowSaved) and low < removedLineLowSaved.get_y1() and close > removedLineLowSaved.get_y1()
-
-plotshape(isBearishSignal, style=shape.triangledown, location=location.abovebar, color=color.blue, size=size.tiny)
-plotshape(isBullishSignal, style=shape.triangleup, location=location.belowbar, color=color.blue, size=size.tiny)
-
-if barstate.isconfirmed
+// *** THE CORE FIX ***
+// On each new bar, reset our saved levels. This works for historical and real-time bars.
+if bar_index != bar_index[1]
     removedLineHighSaved := na
     removedLineLowSaved := na
+
+// If a high level was crossed on this bar's tick, save its price.
+// This "latches" the value for the entire duration of the bar.
+if not na(removedLevelHigh)
+    removedLineHighSaved := removedLevelHigh
+// If a low level was crossed on this bar's tick, save its price.
+if not na(removedLevelLow)
+    removedLineLowSaved := removedLevelLow
+
+// Define the signal conditions. This only runs on the close of a bar.
+isBearishSignal = barstate.isconfirmed and not na(removedLineHighSaved) and high > removedLineHighSaved and close < removedLineHighSaved
+isBullishSignal = barstate.isconfirmed and not na(removedLineLowSaved) and low < removedLineLowSaved and close > removedLineLowSaved
+
+// Plot the signals on the chart.
+plotshape(isBearishSignal, "Bearish Wick", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 20), size=size.small)
+plotshape(isBullishSignal, "Bullish Wick", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 20), size=size.small)
+
+// --- Alerts ---
+alertcondition(isBearishSignal, title="Swept liquidity at highs", message="Swept liquidity at highs")
+alertcondition(isBullishSignal, title="Swept liquidity at lows", message="Swept liquidity at lows")
+
