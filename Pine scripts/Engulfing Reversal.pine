@@ -6,13 +6,15 @@ indicator("Engulfing Reversal", overlay = true)
 
 isOnlyLargeCandles = input.bool(true, "Only large candles")
 
-isBullish(i) => close[i] > open[i]
-isBearish(i) => close[i] < open[i]
+isBullish = close > open
+isBearish = close < open
 largeCandle = (high - low) > ta.atr(5)
 
-isBullishEngulfing(i) => isBullish(i) and close[i] > close[i+1] and close[i] >= open[i+1] and low[i] < low[i+1] and (isOnlyLargeCandles ? largeCandle : true)
-isBearishEngulfing(i) => isBearish(i) and close[i] < close[i+1] and close[i] <= open[i+1] and high[i] > high[i+1] and (isOnlyLargeCandles ? largeCandle : true)
+isBullishEngulfing = isBullish and close > close[1] and close >= open[1] and low < low[1] and (isOnlyLargeCandles ? largeCandle : true)
+isBearishEngulfing = isBearish and close < close[1] and close <= open[1] and high > high[1] and (isOnlyLargeCandles ? largeCandle : true)
 
-plotshape(isBullishEngulfing(0), style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
-plotshape(isBearishEngulfing(0), style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
+plotshape(isBullishEngulfing, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
+plotshape(isBearishEngulfing, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
 
+alertcondition(isBullishEngulfing, title="Bullish engulfing", message="Bullish engulfing")
+alertcondition(isBearishEngulfing, title="Bearish engulfing", message="Bearish engulfing")
