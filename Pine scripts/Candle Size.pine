@@ -1,0 +1,15 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=5
+indicator("Candle Size")
+
+bodySize(i) =>
+    math.abs(open[i] - close[i])
+
+candleSize(i) =>
+    high[i] - low[i]
+
+plot(bodySize(0), "Body Size",color.green)
+plot(candleSize(0), "Candle Size",color.blue)
+plot(ta.atr(5), "ATR",color.red)

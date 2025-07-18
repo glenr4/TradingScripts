@@ -4,11 +4,14 @@
 //@version=5
 indicator("Engulfing Reversal", overlay = true)
 
+isOnlyLargeCandles = input.bool(true, "Only large candles")
+
 isBullish(i) => close[i] > open[i]
 isBearish(i) => close[i] < open[i]
+largeCandle = (high - low) > ta.atr(5)
 
-isBullishEngulfing(i) => isBullish(i) and close[i] > close[i+1] and close[i] >= open[i+1] and low[i] < low[i+1]
-isBearishEngulfing(i) => isBearish(i) and close[i] < close[i+1] and close[i] <= open[i+1] and high[i] > high[i+1]
+isBullishEngulfing(i) => isBullish(i) and close[i] > close[i+1] and close[i] >= open[i+1] and low[i] < low[i+1] and (isOnlyLargeCandles ? largeCandle : true)
+isBearishEngulfing(i) => isBearish(i) and close[i] < close[i+1] and close[i] <= open[i+1] and high[i] > high[i+1] and (isOnlyLargeCandles ? largeCandle : true)
 
 plotshape(isBullishEngulfing(0), style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
 plotshape(isBearishEngulfing(0), style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
