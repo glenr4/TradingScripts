@@ -71,32 +71,12 @@ if(not na(pivotLow))
 removedLevelHigh = adjustHorizontalLineEnd(pivotHighs, true)
 removedLevelLow = adjustHorizontalLineEnd(pivotLows, false)
 
-// --- Signal Logic ---
-// Use 'var' to create variables that persist between ticks on a real-time bar.
-var float removedLineHighSaved = na
-var float removedLineLowSaved = na
+// --- Wick Reversal ---
+isBearishSignal =  not na(removedLevelHigh) and high > removedLevelHigh and close < removedLevelHigh
+isBullishSignal =  not na(removedLevelLow) and low < removedLevelLow and close > removedLevelLow
 
-// *** THE CORE FIX ***
-// On each new bar, reset our saved levels. This works for historical and real-time bars.
-if bar_index != bar_index[1]
-    removedLineHighSaved := na
-    removedLineLowSaved := na
-
-// If a high level was crossed on this bar's tick, save its price.
-// This "latches" the value for the entire duration of the bar.
-if not na(removedLevelHigh)
-    removedLineHighSaved := removedLevelHigh
-// If a low level was crossed on this bar's tick, save its price.
-if not na(removedLevelLow)
-    removedLineLowSaved := removedLevelLow
-
-// Define the signal conditions. This only runs on the close of a bar.
-isBearishSignal = barstate.isconfirmed and not na(removedLineHighSaved) and high > removedLineHighSaved and close < removedLineHighSaved
-isBullishSignal = barstate.isconfirmed and not na(removedLineLowSaved) and low < removedLineLowSaved and close > removedLineLowSaved
-
-// Plot the signals on the chart.
-plotshape(isBearishSignal, "Bearish Wick", style=shape.triangledown, location=location.abovebar, color=color.new(color.red, 20), size=size.small)
-plotshape(isBullishSignal, "Bullish Wick", style=shape.triangleup, location=location.belowbar, color=color.new(color.green, 20), size=size.small)
+plotshape(isBearishSignal, "Bearish Wick", style=shape.triangledown, location=location.abovebar, color=color.new(color.blue, 20), size=size.tiny)
+plotshape(isBullishSignal, "Bullish Wick", style=shape.triangleup, location=location.belowbar, color=color.new(color.blue, 20), size=size.tiny)
 
 // --- Alerts ---
 alertcondition(isBearishSignal, title="Swept liquidity at highs", message="Swept liquidity at highs")
