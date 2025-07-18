@@ -79,6 +79,9 @@ if not na(removedLineHigh)
 if not na(removedLineLow)
     removedLineLowSaved := removedLineLow
 
+log.info("Highs set: " + str.tostring(not na(removedLineHigh)) + ", " + str.tostring(not na(removedLineHighSaved)))
+log.info("Lows set: " + str.tostring(not na(removedLineLow)) + ", " + str.tostring(not na(removedLineLowSaved)))
+
 isBearishSignal = barstate.isconfirmed and not na(removedLineHighSaved) and high > removedLineHighSaved.get_y1() and close < removedLineHighSaved.get_y1()
 isBullishSignal = barstate.isconfirmed and not na(removedLineLowSaved) and low < removedLineLowSaved.get_y1() and close > removedLineLowSaved.get_y1()
 
@@ -87,4 +90,4 @@ plotshape(isBullishSignal, style=shape.triangleup, location=location.belowbar, c
 
 if barstate.isconfirmed
     removedLineHighSaved := na
-    removedLineHighSaved := na
+    removedLineLowSaved := na
