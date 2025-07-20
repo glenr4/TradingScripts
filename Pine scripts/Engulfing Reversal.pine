@@ -4,17 +4,28 @@
 //@version=5
 indicator("Engulfing Reversal", overlay = true)
 
+showWickReversals = input.bool(true, "Show wick reversals")
+showBodyReversals = input.bool(true, "Show body reversals")
 isOnlyLargeCandles = input.bool(true, "Only large candles")
 
 isBullish = close > open
 isBearish = close < open
 largeCandle = (high - low) > ta.atr(5)
 
-isBullishEngulfing = isBullish and close > close[1] and close >= open[1] and low < low[1] and (isOnlyLargeCandles ? largeCandle : true)
-isBearishEngulfing = isBearish and close < close[1] and close <= open[1] and high > high[1] and (isOnlyLargeCandles ? largeCandle : true)
+isBullishEngulfing = isBullish and close > close[1] and close >= open[1] and low < low[1] and (isOnlyLargeCandles ? largeCandle : true) and showWickReversals
+isBearishEngulfing = isBearish and close < close[1] and close <= open[1] and high > high[1] and (isOnlyLargeCandles ? largeCandle : true) and showWickReversals
 
 plotshape(isBullishEngulfing, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.tiny)
 plotshape(isBearishEngulfing, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.tiny)
 
-alertcondition(isBullishEngulfing, title="Bullish engulfing", message="Bullish engulfing")
-alertcondition(isBearishEngulfing, title="Bearish engulfing", message="Bearish engulfing")
+alertcondition(isBullishEngulfing, title="Bullish engulfing wick reversal", message="Bullish engulfing wick reversal")
+alertcondition(isBearishEngulfing, title="Bearish engulfing wick reversal", message="Bearish engulfing wick reversal")
+
+isBullishBodyEngulfing = isBullish and close > close[1] and close >= open[1] and open <= open[1] and open <= close[1] and (isOnlyLargeCandles ? largeCandle : true) and showBodyReversals
+isBearishBodyEngulfing = isBearish and close < close[1] and close <= open[1] and open >= open[1] and open >= close[1] and (isOnlyLargeCandles ? largeCandle : true) and showBodyReversals
+
+plotshape(isBullishBodyEngulfing, style=shape.triangleup, location=location.belowbar, color=color.yellow, size=size.tiny)
+plotshape(isBearishBodyEngulfing, style=shape.triangledown, location=location.abovebar, color=color.yellow, size=size.tiny)
+
+alertcondition(isBullishBodyEngulfing, title="Bullish engulfing body reversal", message="Bullish engulfing body reversal")
+alertcondition(isBearishBodyEngulfing, title="Bearish engulfing body reversal", message="Bearish engulfing body reversal")
