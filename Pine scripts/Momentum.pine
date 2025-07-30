@@ -1,0 +1,24 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("Momentum")
+
+period = input.int(3, "Period")
+
+isBullish = close > open
+isBearish = close < open
+
+hline(0, color = color.black, linestyle = hline.style_solid)
+bullishBodyTotal = math.sum(isBullish ? close - open : 0, period)
+// plot(bullishBodyTotal)
+bearishBodyTotal = math.sum(isBearish ? close - open : 0, period)
+// plot(bearishBodyTotal)
+
+bodyTotal = bullishBodyTotal + bearishBodyTotal
+plot(bodyTotal, color = color.red, style = plot.style_area)
+
+// totalGain = close - open[period]
+// plot(totalGain)
+bodyTotalSummed = math.sum(bodyTotal, period)
+plot(bodyTotalSummed)
