@@ -11,14 +11,13 @@ isBearish = close < open
 
 hline(0, color = color.black, linestyle = hline.style_solid)
 bullishBodyTotal = math.sum(isBullish ? close - open : 0, period)
-// plot(bullishBodyTotal)
 bearishBodyTotal = math.sum(isBearish ? close - open : 0, period)
-// plot(bearishBodyTotal)
 
 bodyTotal = bullishBodyTotal + bearishBodyTotal
-plot(bodyTotal, color = color.red, style = plot.style_area)
+standardColour = color.new(color.blue, 50)
+plot(bodyTotal, color = standardColour, style = plot.style_area)
 
-// totalGain = close - open[period]
-// plot(totalGain)
-bodyTotalSummed = math.sum(bodyTotal, period)
-plot(bodyTotalSummed)
+upColour = color.new(color.green, 50)
+downColour = color.new(color.red, 50)
+plot(bodyTotal > 0 ? bodyTotal : math.abs(bodyTotal), color = bodyTotal > 0 ? upColour : downColour, style = plot.style_area)
+
