@@ -8,8 +8,8 @@ macdSlow = input.int(26, "MACD Slow Length", minval=1)
 macdSignal = input.int(9, "MACD Signal Length", minval=1)
 
 barsAboveEMA = input.int(3, "Bars Above/Below EMA Required", minval=1, tooltip="Number of bars price must be above/below EMA before signal")
-emaTolerance = input.float(0.5, "EMA Distance Tolerance", minval=0, tooltip="Maximum distance in price units from EMA to still count as a bounce")
-minBodyDistance = input.float(1.0, "Minimum Body Distance from EMA", minval=0, tooltip="Minimum distance the candle body must be from EMA (prevents body sitting on EMA)")
+emaTolerance = input.float(0.7, "EMA Distance Tolerance", minval=0, tooltip="Maximum distance in price units from EMA to still count as a bounce")
+minBodyDistance = input.float(0.8, "Minimum Body Distance from EMA", minval=0, tooltip="Minimum distance the candle body must be from EMA (prevents body sitting on EMA)")
 
 // === CALCULATIONS ===
 // EMA
@@ -42,11 +42,16 @@ else
 // 1. Price has been above EMA for required number of bars (continuation, not breakout)
 priceAboveEMA = barsAboveCount >= barsAboveEMA
 
-// 2. Wick rejection: Lower wick touches/pierces EMA OR comes within tolerance
-// Distance from wick to EMA
+// 2. Wick rejection: Lower wick crosses below EMA OR stays above but comes within tolerance
+// Option A: Wick crosses below the EMA
+wickCrossesEMA = low <= ema20 and low < open and low < close
+
+// Option B: Wick stays above EMA but comes within tolerance distance
 distanceToEMA = low - ema20
-wickNearEMA = distanceToEMA <= emaTolerance and distanceToEMA >= -emaTolerance
-wickTouchesEMA = wickNearEMA and low < open and low < close
+wickNearEMA = distanceToEMA > 0 and distanceToEMA <= emaTolerance and low < open and low < close
+
+// Either condition works
+wickTouchesEMA = wickCrossesEMA or wickNearEMA
 
 // 3. Body is sufficiently above EMA (clear rejection, not sitting on EMA)
 bodyDistanceFromEMA = bodyBottom - ema20
@@ -62,11 +67,16 @@ bullishSignal = priceAboveEMA and wickTouchesEMA and bodyAboveEMA and bullishMac
 // 1. Price has been below EMA for required number of bars (continuation, not breakout)
 priceBelowEMA = barsBelowCount >= barsAboveEMA
 
-// 2. Wick rejection: Upper wick touches/pierces EMA OR comes within tolerance
-// Distance from wick to EMA
-distanceToEMABear = high - ema20
-wickNearEMABear = distanceToEMABear >= -emaTolerance and distanceToEMABear <= emaTolerance
-wickTouchesEMABear = wickNearEMABear and high > open and high > close
+// 2. Wick rejection: Upper wick crosses above EMA OR stays below but comes within tolerance
+// Option A: Wick crosses above the EMA
+wickCrossesEMABear = high >= ema20 and high > open and high > close
+
+// Option B: Wick stays below EMA but comes within tolerance distance
+distanceToEMABear = ema20 - high
+wickNearEMABear = distanceToEMABear > 0 and distanceToEMABear <= emaTolerance and high > open and high > close
+
+// Either condition works
+wickTouchesEMABear = wickCrossesEMABear or wickNearEMABear
 
 // 3. Body is sufficiently below EMA (clear rejection, not sitting on EMA)
 bodyDistanceFromEMABear = ema20 - bodyTop
