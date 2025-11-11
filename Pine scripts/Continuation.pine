@@ -7,10 +7,9 @@ macdFast = input.int(12, "MACD Fast Length", minval=1)
 macdSlow = input.int(26, "MACD Slow Length", minval=1)
 macdSignal = input.int(9, "MACD Signal Length", minval=1)
 
-// TODO: need a better way to check for a bounce and also when
-// it doesn't actually touch the EMA but comes very close
 wickRejectionPercent = input.float(5.0, "Minimum Wick % of Candle", minval=0, maxval=100, tooltip="Minimum percentage of the candle that must be wick (not body)")
 barsAboveEMA = input.int(3, "Bars Above/Below EMA Required", minval=1, tooltip="Number of bars price must be above/below EMA before signal")
+emaTolerance = input.float(1.0, "EMA Distance Tolerance", minval=0, tooltip="Maximum distance in price units from EMA to still count as a bounce")
 
 // === CALCULATIONS ===
 // EMA
@@ -49,8 +48,11 @@ else
 // 1. Price has been above EMA for required number of bars (continuation, not breakout)
 priceAboveEMA = barsAboveCount >= barsAboveEMA
 
-// 2. Wick rejection: Lower wick touches/pierces EMA
-wickTouchesEMA = low <= ema20 and low < open and low < close
+// 2. Wick rejection: Lower wick touches/pierces EMA OR comes within tolerance
+// Distance from wick to EMA
+distanceToEMA = low - ema20
+wickNearEMA = distanceToEMA <= emaTolerance and distanceToEMA >= -emaTolerance
+wickTouchesEMA = wickNearEMA and low < open and low < close
 
 // 3. Body does NOT sit on EMA (clear rejection)
 bodyAboveEMA = math.min(close, open) > ema20
@@ -68,8 +70,11 @@ bullishSignal = priceAboveEMA and wickTouchesEMA and bodyAboveEMA and hasLowerWi
 // 1. Price has been below EMA for required number of bars (continuation, not breakout)
 priceBelowEMA = barsBelowCount >= barsAboveEMA
 
-// 2. Wick rejection: Upper wick touches/pierces EMA
-wickTouchesEMABear = high >= ema20 and high > open and high > close
+// 2. Wick rejection: Upper wick touches/pierces EMA OR comes within tolerance
+// Distance from wick to EMA
+distanceToEMABear = high - ema20
+wickNearEMABear = distanceToEMABear >= -emaTolerance and distanceToEMABear <= emaTolerance
+wickTouchesEMABear = wickNearEMABear and high > open and high > close
 
 // 3. Body does NOT sit on EMA (clear rejection)
 bodyBelowEMA = math.max(close, open) < ema20
