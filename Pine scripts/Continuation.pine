@@ -1,0 +1,101 @@
+//@version=5
+indicator("EMA Continuation Signals", overlay=true)
+
+// === INPUTS ===
+emaLength = input.int(20, "EMA Length", minval=1)
+macdFast = input.int(12, "MACD Fast Length", minval=1)
+macdSlow = input.int(26, "MACD Slow Length", minval=1)
+macdSignal = input.int(9, "MACD Signal Length", minval=1)
+
+// TODO: need a better way to check for a bounce and also when
+// it doesn't actually touch the EMA but comes very close
+wickRejectionPercent = input.float(5.0, "Minimum Wick % of Candle", minval=0, maxval=100, tooltip="Minimum percentage of the candle that must be wick (not body)")
+barsAboveEMA = input.int(3, "Bars Above/Below EMA Required", minval=1, tooltip="Number of bars price must be above/below EMA before signal")
+
+// === CALCULATIONS ===
+// EMA
+ema20 = ta.ema(close, emaLength)
+
+// MACD
+[macdLine, signalLine, histLine] = ta.macd(close, macdFast, macdSlow, macdSignal)
+macdPositive = histLine > 0
+macdNegative = histLine < 0
+
+// Candle components
+bodySize = math.abs(close - open)
+totalSize = high - low
+upperWick = high - math.max(close, open)
+lowerWick = math.min(close, open) - low
+
+// Calculate wick percentage
+lowerWickPercent = totalSize > 0 ? (lowerWick / totalSize) * 100 : 0
+upperWickPercent = totalSize > 0 ? (upperWick / totalSize) * 100 : 0
+
+// Check if price has been above/below EMA
+var int barsAboveCount = 0
+var int barsBelowCount = 0
+
+if close > ema20
+    barsAboveCount := barsAboveCount + 1
+    barsBelowCount := 0
+else if close < ema20
+    barsBelowCount := barsBelowCount + 1
+    barsAboveCount := 0
+else
+    barsAboveCount := 0
+    barsBelowCount := 0
+
+// === BULLISH SIGNAL CONDITIONS ===
+// 1. Price has been above EMA for required number of bars (continuation, not breakout)
+priceAboveEMA = barsAboveCount >= barsAboveEMA
+
+// 2. Wick rejection: Lower wick touches/pierces EMA
+wickTouchesEMA = low <= ema20 and low < open and low < close
+
+// 3. Body does NOT sit on EMA (clear rejection)
+bodyAboveEMA = math.min(close, open) > ema20
+
+// 4. Significant lower wick (not just body on EMA)
+hasLowerWickRejection = lowerWickPercent >= wickRejectionPercent
+
+// 5. MACD is positive
+bullishMacd = macdPositive
+
+// Combined bullish signal
+bullishSignal = priceAboveEMA and wickTouchesEMA and bodyAboveEMA and hasLowerWickRejection and bullishMacd
+
+// === BEARISH SIGNAL CONDITIONS ===
+// 1. Price has been below EMA for required number of bars (continuation, not breakout)
+priceBelowEMA = barsBelowCount >= barsAboveEMA
+
+// 2. Wick rejection: Upper wick touches/pierces EMA
+wickTouchesEMABear = high >= ema20 and high > open and high > close
+
+// 3. Body does NOT sit on EMA (clear rejection)
+bodyBelowEMA = math.max(close, open) < ema20
+
+// 4. Significant upper wick (not just body on EMA)
+hasUpperWickRejection = upperWickPercent >= wickRejectionPercent
+
+// 5. MACD is negative
+bearishMacd = macdNegative
+
+// Combined bearish signal
+bearishSignal = priceBelowEMA and wickTouchesEMABear and bodyBelowEMA and hasUpperWickRejection and bearishMacd
+
+// === PLOTTING ===
+// Plot EMA
+plot(ema20, "EMA 20", color=color.rgb(255, 82, 82), linewidth=2)
+
+// Plot signals
+plotshape(bullishSignal, "Bullish Continuation", shape.triangleup, location.belowbar, color.new(color.green, 0), size=size.small)
+plotshape(bearishSignal, "Bearish Continuation", shape.triangledown, location.abovebar, color.new(color.red, 0), size=size.small)
+
+// Background color for trend
+bgcolor(barsAboveCount >= barsAboveEMA ? color.new(color.green, 95) : barsAboveCount >= 1 ? color.new(color.green, 98) : na)
+bgcolor(barsBelowCount >= barsAboveEMA ? color.new(color.red, 95) : barsBelowCount >= 1 ? color.new(color.red, 98) : na)
+
+// === ALERTS ===
+alertcondition(bullishSignal, title="Bullish Continuation", message="Bullish EMA Continuation Signal: Wick rejection off 20 EMA with positive MACD")
+alertcondition(bearishSignal, title="Bearish Continuation", message="Bearish EMA Continuation Signal: Wick rejection off 20 EMA with negative MACD")
+alertcondition(bullishSignal or bearishSignal, title="Any Continuation Signal", message="EMA Continuation Signal Detected")
