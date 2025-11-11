@@ -7,9 +7,9 @@ macdFast = input.int(12, "MACD Fast Length", minval=1)
 macdSlow = input.int(26, "MACD Slow Length", minval=1)
 macdSignal = input.int(9, "MACD Signal Length", minval=1)
 
-wickRejectionPercent = input.float(5.0, "Minimum Wick % of Candle", minval=0, maxval=100, tooltip="Minimum percentage of the candle that must be wick (not body)")
 barsAboveEMA = input.int(3, "Bars Above/Below EMA Required", minval=1, tooltip="Number of bars price must be above/below EMA before signal")
-emaTolerance = input.float(1.0, "EMA Distance Tolerance", minval=0, tooltip="Maximum distance in price units from EMA to still count as a bounce")
+emaTolerance = input.float(0.5, "EMA Distance Tolerance", minval=0, tooltip="Maximum distance in price units from EMA to still count as a bounce")
+minBodyDistance = input.float(1.0, "Minimum Body Distance from EMA", minval=0, tooltip="Minimum distance the candle body must be from EMA (prevents body sitting on EMA)")
 
 // === CALCULATIONS ===
 // EMA
@@ -21,14 +21,8 @@ macdPositive = histLine > 0
 macdNegative = histLine < 0
 
 // Candle components
-bodySize = math.abs(close - open)
-totalSize = high - low
-upperWick = high - math.max(close, open)
-lowerWick = math.min(close, open) - low
-
-// Calculate wick percentage
-lowerWickPercent = totalSize > 0 ? (lowerWick / totalSize) * 100 : 0
-upperWickPercent = totalSize > 0 ? (upperWick / totalSize) * 100 : 0
+bodyTop = math.max(close, open)
+bodyBottom = math.min(close, open)
 
 // Check if price has been above/below EMA
 var int barsAboveCount = 0
@@ -54,17 +48,15 @@ distanceToEMA = low - ema20
 wickNearEMA = distanceToEMA <= emaTolerance and distanceToEMA >= -emaTolerance
 wickTouchesEMA = wickNearEMA and low < open and low < close
 
-// 3. Body does NOT sit on EMA (clear rejection)
-bodyAboveEMA = math.min(close, open) > ema20
+// 3. Body is sufficiently above EMA (clear rejection, not sitting on EMA)
+bodyDistanceFromEMA = bodyBottom - ema20
+bodyAboveEMA = bodyDistanceFromEMA >= minBodyDistance
 
-// 4. Significant lower wick (not just body on EMA)
-hasLowerWickRejection = lowerWickPercent >= wickRejectionPercent
-
-// 5. MACD is positive
+// 4. MACD is positive
 bullishMacd = macdPositive
 
 // Combined bullish signal
-bullishSignal = priceAboveEMA and wickTouchesEMA and bodyAboveEMA and hasLowerWickRejection and bullishMacd
+bullishSignal = priceAboveEMA and wickTouchesEMA and bodyAboveEMA and bullishMacd
 
 // === BEARISH SIGNAL CONDITIONS ===
 // 1. Price has been below EMA for required number of bars (continuation, not breakout)
@@ -76,17 +68,15 @@ distanceToEMABear = high - ema20
 wickNearEMABear = distanceToEMABear >= -emaTolerance and distanceToEMABear <= emaTolerance
 wickTouchesEMABear = wickNearEMABear and high > open and high > close
 
-// 3. Body does NOT sit on EMA (clear rejection)
-bodyBelowEMA = math.max(close, open) < ema20
+// 3. Body is sufficiently below EMA (clear rejection, not sitting on EMA)
+bodyDistanceFromEMABear = ema20 - bodyTop
+bodyBelowEMA = bodyDistanceFromEMABear >= minBodyDistance
 
-// 4. Significant upper wick (not just body on EMA)
-hasUpperWickRejection = upperWickPercent >= wickRejectionPercent
-
-// 5. MACD is negative
+// 4. MACD is negative
 bearishMacd = macdNegative
 
 // Combined bearish signal
-bearishSignal = priceBelowEMA and wickTouchesEMABear and bodyBelowEMA and hasUpperWickRejection and bearishMacd
+bearishSignal = priceBelowEMA and wickTouchesEMABear and bodyBelowEMA and bearishMacd
 
 // === PLOTTING ===
 // Plot EMA
