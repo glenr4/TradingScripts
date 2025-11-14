@@ -1,0 +1,26 @@
+//@version=5
+indicator("Manipulation Reversal", overlay=true)
+
+// Bullish Signal: Current candle has a low lower than previous candle AND closes higher than previous candle
+bullishSignal = low < low[1] and close > high[1]
+
+// Bearish Signal: Current candle has a high higher than previous candle AND closes lower than previous candle
+bearishSignal = high > high[1] and close < low[1]
+
+// Define colors for body and wicks
+bodyColor = bullishSignal ? na : bearishSignal ? color.red : na
+wickColor = (bullishSignal or bearishSignal) ? color.red : na
+borderColor = (bullishSignal or bearishSignal) ? color.red : na
+
+// Plot candles with custom colors
+// Bullish signals: hollow (na body color) with red wicks and border
+// Bearish signals: filled red body with red wicks and border
+plotcandle(open, high, low, close,
+     title="Manipulation Candles",
+     color=bodyColor,
+     wickcolor=wickColor,
+     bordercolor=borderColor)
+
+// Plot triangle signals
+plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small, title="Bullish Signal")
+plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, title="Bearish Signal")
