@@ -9,11 +9,11 @@ bearishSignal = high > high[1] and close < low[1]
 
 // Define colors for body and wicks
 bodyColor = bullishSignal ? na : bearishSignal ? color.red : na
-wickColor = (bullishSignal or bearishSignal) ? color.red : na
-borderColor = (bullishSignal or bearishSignal) ? color.red : na
+wickColor = bullishSignal ? color.green : bearishSignal ? color.red : na
+borderColor = bullishSignal ? color.green : bearishSignal ? color.red : na
 
 // Plot candles with custom colors
-// Bullish signals: hollow (na body color) with red wicks and border
+// Bullish signals: hollow (na body color) with green wicks and border
 // Bearish signals: filled red body with red wicks and border
 plotcandle(open, high, low, close,
      title="Manipulation Candles",
