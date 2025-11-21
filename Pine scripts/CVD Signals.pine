@@ -1,0 +1,41 @@
+//@version=6
+indicator("CVD Signals", "CVD Signals", format=format.volume)
+
+import TradingView/ta/8
+
+anchorInput = input.timeframe("1D", "Anchor period")
+lowerTimeframeTooltip = "The indicator scans lower timeframe data to approximate up and down volume used in the delta calculation. By default, the timeframe is chosen automatically. These inputs override this with a custom timeframe.
+ \n\nHigher timeframes provide more historical data, but the data will be less precise."
+useCustomTimeframeInput = input.bool(false, "Use custom timeframe", tooltip = lowerTimeframeTooltip)
+lowerTimeframeInput = input.timeframe("1", "Timeframe", active = useCustomTimeframeInput)
+avgCvdLengthInput = input.int(5, "Average CVD Length", minval = 1)
+lowAvgCvdFactor = input.float(0.1, "Low Average CVD Factor", minval = 0.01, step = 0.1)
+highAvgCvdFactor = input.float(2, "High Average CVD Factor", minval = 0.1, step = 0.1)
+
+var lowerTimeframe = switch
+    useCustomTimeframeInput => lowerTimeframeInput
+    timeframe.isseconds     => "1S"
+    timeframe.isintraday    => "1"
+    timeframe.isdaily       => "5"
+    => "60"
+
+[openVolume, maxVolume, minVolume, lastVolume] = ta.requestVolumeDelta(lowerTimeframe, anchorInput)
+
+var cumVol = 0.
+cumVol += nz(volume)
+if barstate.islast and cumVol == 0
+    runtime.error("The data vendor doesn't provide volume data for this symbol.")
+
+col = lastVolume >= openVolume ? color.teal : color.red
+hline(0)
+plotcandle(openVolume, maxVolume, minVolume, lastVolume, "CVD", color = col, bordercolor = col, wickcolor = col)
+
+// Calculate  Average CVD
+cvdBody = math.abs(lastVolume - openVolume)
+avgCvdBody = ta.sma(cvdBody, avgCvdLengthInput)
+
+isLowCVDRange = cvdBody < (avgCvdBody * lowAvgCvdFactor)
+isHighCVDRange = cvdBody > (avgCvdBody * highAvgCvdFactor)
+
+plotshape(isLowCVDRange, title="Low CVD Range", style=shape.circle, location=location.abovebar, color=color.new(color.orange, 30), size=size.tiny, force_overlay = true)
+plotshape(isHighCVDRange, title="High CVD Range", style=shape.circle, location=location.abovebar, color=color.new(color.green, 30), size=size.tiny, force_overlay = true)
