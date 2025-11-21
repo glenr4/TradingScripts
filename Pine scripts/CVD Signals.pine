@@ -9,8 +9,8 @@ lowerTimeframeTooltip = "The indicator scans lower timeframe data to approximate
 useCustomTimeframeInput = input.bool(false, "Use custom timeframe", tooltip = lowerTimeframeTooltip)
 lowerTimeframeInput = input.timeframe("1", "Timeframe", active = useCustomTimeframeInput)
 avgCvdLengthInput = input.int(5, "Average CVD Length", minval = 1)
-lowAvgCvdFactor = input.float(0.1, "Low Average CVD Factor", minval = 0.01, step = 0.1)
-highAvgCvdFactor = input.float(2, "High Average CVD Factor", minval = 0.1, step = 0.1)
+lowAvgCvdFactor = input.float(0.2, "Low Average CVD Factor", minval = 0.1, step = 0.1)
+highAvgCvdFactor = input.float(3, "High Average CVD Factor", minval = 0.1, step = 0.1)
 
 var lowerTimeframe = switch
     useCustomTimeframeInput => lowerTimeframeInput
@@ -34,8 +34,13 @@ plotcandle(openVolume, maxVolume, minVolume, lastVolume, "CVD", color = col, bor
 cvdBody = math.abs(lastVolume - openVolume)
 avgCvdBody = ta.sma(cvdBody, avgCvdLengthInput)
 
-isLowCVDRange = cvdBody < (avgCvdBody * lowAvgCvdFactor)
-isHighCVDRange = cvdBody > (avgCvdBody * highAvgCvdFactor)
+isLowCVDRange = cvdBody <= (avgCvdBody[1] * lowAvgCvdFactor)
+isHighCVDRange = cvdBody >= (avgCvdBody[1] * highAvgCvdFactor)
 
 plotshape(isLowCVDRange, title="Low CVD Range", style=shape.circle, location=location.abovebar, color=color.new(color.orange, 30), size=size.tiny, force_overlay = true)
 plotshape(isHighCVDRange, title="High CVD Range", style=shape.circle, location=location.abovebar, color=color.new(color.green, 30), size=size.tiny, force_overlay = true)
+
+plot(cvdBody, "cvdBody", color.blue)
+//plot(avgCvdBody, "avgCvdBody", color.yellow)
+plot(avgCvdBody[1] * lowAvgCvdFactor, "Low CVD", color.red)
+plot(avgCvdBody[1] * highAvgCvdFactor, "High CVD", color.green)
