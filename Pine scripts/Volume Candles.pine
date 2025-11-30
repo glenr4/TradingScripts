@@ -1,0 +1,89 @@
+//@version=6
+indicator("Volume Candles", "Volume Candles", overlay=true)
+
+// Inputs
+volLengthInput = input.int(20, "Volume Average Length", minval = 1)
+minWidthInput = input.int(1, "Minimum Width", minval = 1, maxval = 10)
+maxWidthInput = input.int(8, "Maximum Width", minval = 1, maxval = 10)
+minTransparencyInput = input.int(0, "Minimum Transparency (High Volume)", minval = 0, maxval = 100)
+maxTransparencyInput = input.int(80, "Maximum Transparency (Low Volume)", minval = 0, maxval = 100)
+bullColorInput = input.color(color.green, "Bullish Color")
+bearColorInput = input.color(color.red, "Bearish Color")
+
+// Calculate volume metrics
+avgVolume = ta.sma(volume, volLengthInput)
+volRatio = volume / avgVolume
+
+// Normalize volume ratio for width (clamp between 0.5x and 3x average)
+normalizedVolRatio = math.min(math.max(volRatio, 0.5), 3.0)
+
+// Map volume ratio to width (0.5-3.0 -> min-max width)
+widthRange = maxWidthInput - minWidthInput
+volumeWidth = minWidthInput + ((normalizedVolRatio - 0.5) / 2.5) * widthRange
+
+// Map volume ratio to transparency (higher volume = more opaque)
+transparencyRange = maxTransparencyInput - minTransparencyInput
+volumeTransparency = maxTransparencyInput - ((normalizedVolRatio - 0.5) / 2.5) * transparencyRange
+
+// Determine candle color
+isBullish = close >= open
+baseColor = isBullish ? bullColorInput : bearColorInput
+candleColor = color.new(baseColor, int(volumeTransparency))
+
+// Plot candles with varying widths
+// We'll plot multiple boxes to simulate width
+var box[] candles = array.new<box>()
+
+if barstate.isconfirmed or barstate.islast
+    // Clear old boxes (keep only recent ones to avoid memory issues)
+    if array.size(candles) > 500
+        oldBox = array.shift(candles)
+        box.delete(oldBox)
+
+    // Calculate candle dimensions
+    halfWidth = int(volumeWidth / 2)
+
+    // Create main candle body
+    for i = -halfWidth to halfWidth
+        candleBox = box.new(
+             left = bar_index + i,
+             top = math.max(open, close),
+             right = bar_index + i + 1,
+             bottom = math.min(open, close),
+             border_color = candleColor,
+             bgcolor = candleColor,
+             border_width = 1
+         )
+        array.push(candles, candleBox)
+
+    // Create wicks
+    wickColor = color.new(baseColor, int(volumeTransparency))
+
+    // Upper wick
+    if high > math.max(open, close)
+        upperWick = box.new(
+             left = bar_index,
+             top = high,
+             right = bar_index + 1,
+             bottom = math.max(open, close),
+             border_color = wickColor,
+             bgcolor = wickColor,
+             border_width = 1
+         )
+        array.push(candles, upperWick)
+
+    // Lower wick
+    if low < math.min(open, close)
+        lowerWick = box.new(
+             left = bar_index,
+             top = math.min(open, close),
+             right = bar_index + 1,
+             bottom = low,
+             border_color = wickColor,
+             bgcolor = wickColor,
+             border_width = 1
+         )
+        array.push(candles, lowerWick)
+
+// Optional: Plot volume ratio for reference
+plot(volRatio, "Volume Ratio", color=color.new(color.blue, 70), display=display.none)

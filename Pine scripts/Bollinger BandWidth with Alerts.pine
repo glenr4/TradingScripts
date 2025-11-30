@@ -1,0 +1,24 @@
+//@version=6
+indicator(title="Bollinger BandWidth with Alerts", shorttitle="BBW", format=format.price, precision=2, timeframe="", timeframe_gaps=true)
+
+length = input.int(20, "Moving average period",    minval = 1)
+src    = input(close,     title = "Source")
+mult   = input.float(2.0,"Std dev multiplier", minval = 0.001, maxval =50)
+
+lookback   = input.int(50, "Lookback",  display = display.data_window)
+
+sma = ta.sma(src, length)
+stdDev   = mult * ta.stdev(src, length)
+upper = sma + stdDev
+lower = sma - stdDev
+bbw   = ((upper - lower) / sma) * 100
+
+highestExpansion = ta.highest(bbw, lookback)
+lowestExpansion = ta.lowest(bbw, lookback)
+
+plot(bbw, "Bollinger BandWidth", color = #2962FF)
+plot(highestExpansion,  "Highest Expansion",  color = color.new(#F23645, 50))
+plot(lowestExpansion, "Lowest Contraction", color = color.new(#089981, 50))
+
+alertcondition(bbw == highestExpansion, "Highest expansion", "Highest expansion")
+alertcondition(bbw == lowestExpansion, "Lowest expansion", "Lowest expansion")
