@@ -9,6 +9,8 @@ fixedArraySize = input(10, "Number of pivot lines to extend")
 resistanceColour = input.color(#4caf50, title="Liquidity at highs colour")
 supportColour = input.color(#d809fc, title="Liquidity at lows colour")
 
+isBullish = close > open
+isBearish = close < open
 
 pivotHigh = ta.pivothigh(high, sideBars, sideBars)
 pivotLow = ta.pivotlow(low, sideBars, sideBars)
@@ -72,8 +74,8 @@ removedLevelHigh = adjustHorizontalLineEnd(pivotHighs, true)
 removedLevelLow = adjustHorizontalLineEnd(pivotLows, false)
 
 // --- Wick Reversal ---
-isBearishSignal =  not na(removedLevelHigh) and high > removedLevelHigh and close < removedLevelHigh
-isBullishSignal =  not na(removedLevelLow) and low < removedLevelLow and close > removedLevelLow
+isBearishSignal =  not na(removedLevelHigh) and high > removedLevelHigh and close < removedLevelHigh and isBearish
+isBullishSignal =  not na(removedLevelLow) and low < removedLevelLow and close > removedLevelLow and isBullish
 
 plotshape(isBearishSignal, "Bearish Wick", style=shape.triangledown, location=location.abovebar, color=color.new(color.blue, 20), size=size.tiny)
 plotshape(isBullishSignal, "Bullish Wick", style=shape.triangleup, location=location.belowbar, color=color.new(color.blue, 20), size=size.tiny)
