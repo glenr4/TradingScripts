@@ -6,6 +6,7 @@ src    = input(close,     title = "Source")
 mult   = input.float(2.0,"Std dev multiplier", minval = 0.001, maxval =50)
 
 lookback   = input.int(50, "Lookback",  display = display.data_window)
+tolerance  = input.float(0.01, "Tolerance for expansion detection", minval = 0.0, step = 0.01, display = display.data_window)
 
 // Background shading inputs
 enableShading = input.bool(true, "Enable Background Shading", group = "Background Shading")
@@ -21,15 +22,19 @@ bbw   = ((upper - lower) / sma) * 100
 highestExpansion = ta.highest(bbw, lookback)
 lowestExpansion = ta.lowest(bbw, lookback)
 
+// Check if current bbw is within tolerance of highest/lowest
+atHighestExpansion = math.abs(bbw - highestExpansion) <= tolerance
+atLowestExpansion = math.abs(bbw - lowestExpansion) <= tolerance
+
 plot(bbw, "Bollinger BandWidth", color = #2962FF)
 plot(highestExpansion,  "Highest Expansion",  color = color.new(color.green, 50))
 plot(lowestExpansion, "Lowest Contraction", color = color.new(color.red, 50))
 
-alertcondition(bbw == highestExpansion, "Highest expansion", "Highest expansion")
-alertcondition(bbw == lowestExpansion, "Lowest expansion", "Lowest expansion")
+alertcondition(atHighestExpansion, "Highest expansion", "Highest expansion")
+alertcondition(atLowestExpansion, "Lowest expansion", "Lowest expansion")
 
 // Background shading on price chart
-bgcolor(enableShading and bbw == highestExpansion ? highestExpansionColor : na, title = "Highest Expansion Background", force_overlay = false)
-bgcolor(enableShading and bbw == highestExpansion ? highestExpansionColor : na, title = "Highest Expansion Background", force_overlay = true)
-bgcolor(enableShading and bbw == lowestExpansion ? lowestExpansionColor : na, title = "Lowest Contraction Background", force_overlay = false)
-bgcolor(enableShading and bbw == lowestExpansion ? lowestExpansionColor : na, title = "Lowest Contraction Background", force_overlay = true)
+bgcolor(enableShading and atHighestExpansion ? highestExpansionColor : na, title = "Highest Expansion Background", force_overlay = false)
+bgcolor(enableShading and atHighestExpansion ? highestExpansionColor : na, title = "Highest Expansion Background", force_overlay = true)
+bgcolor(enableShading and atLowestExpansion ? lowestExpansionColor : na, title = "Lowest Contraction Background", force_overlay = false)
+bgcolor(enableShading and atLowestExpansion ? lowestExpansionColor : na, title = "Lowest Contraction Background", force_overlay = true)
