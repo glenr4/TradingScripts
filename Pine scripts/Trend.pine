@@ -1,0 +1,32 @@
+//@version=5
+indicator("Trend", overlay=true)
+
+// Input for number of consecutive candles required
+consecutiveCandles = input.int(7, "Consecutive Candles", minval=2, maxval=20)
+
+// Calculate consecutive higher lows for bullish trend
+consecutiveHigherLows = 0
+for i = 1 to consecutiveCandles
+    if low[i-1] > low[i]
+        consecutiveHigherLows := consecutiveHigherLows + 1
+    else
+        break
+
+// Calculate consecutive lower highs for bearish trend
+consecutiveLowerHighs = 0
+for i = 1 to consecutiveCandles
+    if high[i-1] < high[i]
+        consecutiveLowerHighs := consecutiveLowerHighs + 1
+    else
+        break
+
+// Determine trend
+isBullish = consecutiveHigherLows >= consecutiveCandles
+isBearish = consecutiveLowerHighs >= consecutiveCandles
+
+// Background colors
+bullishColor = input.color(color.new(color.green, 85), "Bullish Background")
+bearishColor = input.color(color.new(color.red, 85), "Bearish Background")
+
+// Apply background highlighting
+bgcolor(isBullish ? bullishColor : isBearish ? bearishColor : na, title="Trend Background")
