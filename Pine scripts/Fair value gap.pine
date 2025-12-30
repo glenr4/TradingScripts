@@ -12,6 +12,11 @@ boxColour = input.color(color.new(#faf603, 70), "FVG Box Colour")
 showOrderBlocks = input.bool(false, "Show Order Blocks")
 obBoxColour = input.color(color.new(#b8b8b8, 90), "Order Block Box Colour")
 
+// Triangle signal settings
+showTriangles = input.bool(true, "Show Triangle Signals", group="Triangle Signals")
+minFVGCount = input.int(3, "Minimum FVG Count", minval=2, maxval=10, group="Triangle Signals")
+maxCandles = input.int(10, "Maximum Candles Lookback", minval=2, maxval=50, group="Triangle Signals")
+
 boxLength = 3
 
 type fvg
@@ -19,8 +24,13 @@ type fvg
     float limit
     bool isBullish
 
+type fvgOccurrence
+    int barIndex
+    bool isBullish
+
 var fvg[] fvgs = array.new<fvg>(0)
 var fvg[] obs = array.new<fvg>(0)   // Order Blocks
+var fvgOccurrence[] fvgHistory = array.new<fvgOccurrence>(0)  // Track FVG occurrences for signals
 
 isBullish(i) =>
     close[i] > open[i]
@@ -50,12 +60,16 @@ isOverLapPriorBar(int middleCandleIndex) =>
                 if showOrderBlocks
                     array.push(obs, fvg.new(box.new(bar_index - previousCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[previousCandleIndex], bgcolor=obBoxColour, border_color=obBoxColour, border_width = 1), high[previousCandleIndex], true))
                 fvgSize := math.abs(high[previousCandleIndex] - low[nextCandleIndex])
+                // Track FVG occurrence
+                array.push(fvgHistory, fvgOccurrence.new(bar_index, true))
             else
                 if showFVGs
                     array.push(fvgs, fvg.new(box.new(bar_index - middleCandleIndex, low[previousCandleIndex], bar_index + boxLength, high[nextCandleIndex], bgcolor=boxColour, border_color=boxColour, border_width = 1), high[nextCandleIndex], false))
                 if showOrderBlocks
                     array.push(obs, fvg.new(box.new(bar_index - previousCandleIndex, high[previousCandleIndex], bar_index + boxLength, low[previousCandleIndex], bgcolor=obBoxColour, border_color=obBoxColour, border_width = 1), low[previousCandleIndex], false))
                 fvgSize := math.abs(low[previousCandleIndex] - high[nextCandleIndex])
+                // Track FVG occurrence
+                array.push(fvgHistory, fvgOccurrence.new(bar_index, false))
     fvgSize // return value
 
 
@@ -91,7 +105,41 @@ if showFVGs
 if showOrderBlocks
     obMitigated := adjustBox(obs)
 
+// Check for multiple FVGs within lookback period
+checkMultipleFVGs() =>
+    bullishCount = 0
+    bearishCount = 0
+
+    // Remove old FVG occurrences outside the lookback window
+    if array.size(fvgHistory) > 0
+        for i = array.size(fvgHistory) - 1 to 0
+            fvgOccurrence occ = array.get(fvgHistory, i)
+            if bar_index - occ.barIndex > maxCandles
+                array.remove(fvgHistory, i)
+
+    // Count bullish and bearish FVGs within lookback
+    if array.size(fvgHistory) > 0
+        for i = 0 to array.size(fvgHistory) - 1
+            fvgOccurrence occ = array.get(fvgHistory, i)
+            if occ.isBullish
+                bullishCount += 1
+            else
+                bearishCount += 1
+
+    [bullishCount, bearishCount]
+
+[bullishCount, bearishCount] = checkMultipleFVGs()
+
+// Display triangle signals
+bullishSignal = showTriangles and bullishCount >= minFVGCount
+bearishSignal = showTriangles and bearishCount >= minFVGCount
+
+plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.green, size=size.small, title="Bullish FVG Signal")
+plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=color.red, size=size.small, title="Bearish FVG Signal")
+
 // Signals
 alertcondition(fvgMitigated,"FVG Mitigated","FVG Mitigated")
 alertcondition(obMitigated,"OB Mitigated","OB Mitigated")
 alertcondition(fvgSize > 0,"FVG Formed","FVG Formed")
+alertcondition(bullishSignal, "Bullish FVG Cluster", "Multiple Bullish FVGs Detected")
+alertcondition(bearishSignal, "Bearish FVG Cluster", "Multiple Bearish FVGs Detected")
