@@ -1,0 +1,28 @@
+// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+indicator("Small Body Cluster", overlay = true, max_boxes_count = 500)
+
+// ─── INPUTS ──────────────────────────────────────────────────────────────────
+maxBody     = input.float(5.0, "Max Body Size", minval = 0, step = 1,
+              tooltip = "Max candle body (price units) to count as small")
+fillColor   = input.color(color.new(color.orange, 75), "Zone Fill")
+
+// ─── DETECTION ────────────────────────────────────────────────────────────────
+bodySize   = math.abs(close - open)
+isSmall    = bodySize <= maxBody
+
+// Three consecutive small bodies — box drawn only on the bar that completes
+// the first group of three. A run of 4+ small candles produces one box, not
+// overlapping ones.
+threeSmall = isSmall and isSmall[1] and isSmall[2]
+justFormed = threeSmall and not threeSmall[1]
+
+// ─── BOX ──────────────────────────────────────────────────────────────────────
+if justFormed
+    boxTop    = math.max(high, math.max(high[1], high[2]))
+    boxBottom = math.min(low,  math.min(low[1],  low[2]))
+    box.new(bar_index - 2, boxTop, bar_index, boxBottom,
+            bgcolor      = fillColor,
+            border_color = fillColor)
