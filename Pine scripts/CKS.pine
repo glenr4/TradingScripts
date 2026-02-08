@@ -1,0 +1,21 @@
+//@version=6
+indicator(shorttitle = "CKS", title = "Chande Kroll Stop", overlay=true)
+p = input.int(2, minval=1, title="ATR Length (p)")
+x = input.int(2, minval=1, title="ATR Coefficient (x)")
+q = input.int(22, minval=1, title="Stop Length (q)")
+first_high_stop = ta.highest(high, p) - x * ta.atr(p)
+first_low_stop = ta.lowest(low, p) + x * ta.atr(p)
+stop_long = ta.highest(first_high_stop, q)
+stop_short = ta.lowest(first_low_stop, q)
+plot(stop_long, color=color.rgb(43, 175, 22), title="Stop Long")
+plot(stop_short, color=#f70b0b, title="Stop Short")
+
+// Alert
+isBullish = close > open
+bullishSignal = low < stop_long and close > stop_long and open > stop_long and isBullish and stop_long > stop_short
+bearishSignal = high > stop_short and close < stop_short and open < stop_short and not isBullish and stop_long > stop_short
+plotshape(bullishSignal, style=shape.triangleup, location=location.belowbar, color=color.rgb(43, 175, 22), size=size.tiny)
+plotshape(bearishSignal, style=shape.triangledown, location=location.abovebar, color=#f70b0b, size=size.tiny)
+
+alertcondition(bullishSignal, title="CKS Bullish Wick", message="CKS Bullish Wick")
+alertcondition(bearishSignal, title="CKS Bearish Wick", message="CKS Bearish Wick")
