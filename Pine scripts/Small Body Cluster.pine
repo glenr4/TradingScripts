@@ -19,10 +19,22 @@ isSmall    = bodySize <= maxBody
 threeSmall = isSmall and isSmall[1] and isSmall[2]
 justFormed = threeSmall and not threeSmall[1]
 
+var box smallBox = na
+
+if(not na(smallBox) and threeSmall)
+    smallBox.set_right(bar_index)
+    if(smallBox.get_top() < high)
+        smallBox.set_top(high)
+    if(smallBox.get_bottom() > low)
+        smallBox.set_bottom(low)
+    
+else
+    smallBox := na
+
 // ─── BOX ──────────────────────────────────────────────────────────────────────
 if justFormed
     boxTop    = math.max(high, math.max(high[1], high[2]))
     boxBottom = math.min(low,  math.min(low[1],  low[2]))
-    box.new(bar_index - 2, boxTop, bar_index, boxBottom,
+    smallBox := box.new(bar_index - 2, boxTop, bar_index, boxBottom,
             bgcolor      = fillColor,
             border_color = fillColor)
