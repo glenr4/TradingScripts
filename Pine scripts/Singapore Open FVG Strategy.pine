@@ -1,0 +1,233 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+
+//@version=6
+strategy("Singapore Open FVG Strategy", overlay=true, process_orders_on_close=true,
+         max_lines_count=200, max_boxes_count=200, max_labels_count=50)
+
+// ═══════════════════════════════════════════════════════════
+// 0. INPUTS
+// ═══════════════════════════════════════════════════════════
+pivotLeftBars      = input.int(5,     "Pivot Left Bars",      minval=1, maxval=20,  group="Pivots")
+pivotRightBars     = input.int(5,     "Pivot Right Bars",     minval=1, maxval=20,  group="Pivots")
+maxPivotHistory    = input.int(20,    "Pivot History Count",  minval=5, maxval=50,  group="Pivots")
+riskDollars        = input.float(500.0, "Risk ($)",           minval=1,             group="Risk Management")
+contractMultiplier = input.float(1.0,   "Contract Multiplier",minval=0.001,         group="Risk Management")
+minR2R             = input.float(2.0,   "Min R:R",            minval=1.0, step=0.1, group="Risk Management")
+showBoxes          = input.bool(true,  "Show FVG Boxes",                            group="Display")
+showLines          = input.bool(true,  "Show Trade Lines",                          group="Display")
+fvgBullColor       = input.color(color.new(color.green, 80), "Bullish FVG Color",  group="Display")
+fvgBearColor       = input.color(color.new(color.red,   80), "Bearish FVG Color",  group="Display")
+
+// ═══════════════════════════════════════════════════════════
+// 1. SESSION DETECTION
+// Singapore 9am–10am SGT = UTC+8, so 01:00–02:00 UTC
+// ═══════════════════════════════════════════════════════════
+inWindow    = not na(time("", "0100-0200", "GMT+0"))
+startWindow = ta.rising((inWindow ? 1.0 : 0.0), 1)
+
+var bool windowOpen          = false
+var bool sessionTradeAllowed = false
+
+isInTrade = strategy.position_size != 0
+isLong    = strategy.position_size > 0
+isShort   = strategy.position_size < 0
+
+if startWindow
+    windowOpen          := true
+    sessionTradeAllowed := true
+    if not isInTrade
+        strategy.cancel_all()  // clear any leftover pending limit orders
+
+if not inWindow
+    windowOpen := false
+    // Cancel pending limit entry if window closed without a fill
+    if not isInTrade
+        strategy.cancel_all()
+
+bgcolor(inWindow ? color.new(color.yellow, 92) : na, title="Singapore Window")
+
+// ═══════════════════════════════════════════════════════════
+// 2. TYPE DEFINITION
+// ═══════════════════════════════════════════════════════════
+type fvg
+    float topEdge
+    float bottomEdge
+    float entryEdge   // closest edge to current price (entry level for limit order)
+    bool  isBullish
+
+// ═══════════════════════════════════════════════════════════
+// 3. PIVOT TRACKING
+// ta.pivothigh/low confirm pivotRightBars after the actual pivot bar
+// ═══════════════════════════════════════════════════════════
+ph = ta.pivothigh(high, pivotLeftBars, pivotRightBars)
+pl = ta.pivotlow (low,  pivotLeftBars, pivotRightBars)
+
+var float[] recentPivotHighs = array.new<float>(0)
+var float[] recentPivotLows  = array.new<float>(0)
+var float   lastPivotHigh    = na
+var float   lastPivotLow     = na
+
+if not na(ph)
+    array.unshift(recentPivotHighs, ph)
+    if array.size(recentPivotHighs) > maxPivotHistory
+        array.pop(recentPivotHighs)
+    lastPivotHigh := ph
+
+if not na(pl)
+    array.unshift(recentPivotLows, pl)
+    if array.size(recentPivotLows) > maxPivotHistory
+        array.pop(recentPivotLows)
+    lastPivotLow := pl
+
+// Nearest pivot strictly above ref — used for long take profit
+nearestAbove(float[] arr, float ref) =>
+    float best = na
+    if array.size(arr) > 0
+        for i = 0 to array.size(arr) - 1
+            v = array.get(arr, i)
+            if v > ref and (na(best) or v < best)
+                best := v
+    best
+
+// Nearest pivot strictly below ref — used for short take profit
+nearestBelow(float[] arr, float ref) =>
+    float best = na
+    if array.size(arr) > 0
+        for i = 0 to array.size(arr) - 1
+            v = array.get(arr, i)
+            if v < ref and (na(best) or v > best)
+                best := v
+    best
+
+// ═══════════════════════════════════════════════════════════
+// 4. FVG DETECTION
+// 3-candle pattern: bar[2]=left, bar[1]=middle(impulse), bar[0]=right(current)
+//
+// Bullish FVG: middle candle is bullish, low[0] > high[2]
+//   → gap between high[2] (bottom) and low[0] (top)
+//   → enter long at bottom edge (high[2]): price retraces down to fill
+//
+// Bearish FVG: middle candle is bearish, high[0] < low[2]
+//   → gap between high[0] (bottom) and low[2] (top)
+//   → enter short at top edge (low[2]): price retraces up to fill
+// ═══════════════════════════════════════════════════════════
+detectFvg() =>
+    fvg result = na
+    isBullMid = close[1] > open[1]
+
+    if isBullMid and low[0] > high[2]
+        result := fvg.new(topEdge=low[0], bottomEdge=high[2], entryEdge=high[2], isBullish=true)
+
+    else if not isBullMid and high[0] < low[2]
+        result := fvg.new(topEdge=low[2], bottomEdge=high[0], entryEdge=low[2], isBullish=false)
+
+    result
+
+// ═══════════════════════════════════════════════════════════
+// 5. TRADE LEVELS (persisted across bars for exit management)
+// ═══════════════════════════════════════════════════════════
+var float tradeSL = na
+var float tradeTP = na
+
+// ═══════════════════════════════════════════════════════════
+// 6. ENTRY LOGIC
+// Runs only within the Singapore window, one trade per session
+// ═══════════════════════════════════════════════════════════
+lineLength = 40
+
+if windowOpen and sessionTradeAllowed and not isInTrade
+    newFvg = detectFvg()
+
+    if not na(newFvg)
+        entry = newFvg.entryEdge
+
+        if newFvg.isBullish
+            // Long: SL at last swing low, TP at nearest swing high (minimum R:R enforced)
+            slPrice = lastPivotLow
+
+            if not na(slPrice) and slPrice < entry
+                riskPts   = entry - slPrice
+                naturalTP = nearestAbove(recentPivotHighs, entry)
+                tpPrice   = not na(naturalTP) and (naturalTP - entry) / riskPts >= minR2R
+                             ? naturalTP
+                             : entry + riskPts * minR2R
+                posSize   = math.max(1, math.round(riskDollars / (riskPts * contractMultiplier)))
+                rr        = math.round((tpPrice - entry) / riskPts, 2)
+
+                strategy.cancel_all()
+                strategy.entry("Long", strategy.long, posSize, limit=entry, comment="FVG Long")
+
+                tradeSL             := slPrice
+                tradeTP             := tpPrice
+                sessionTradeAllowed := false
+
+                if showBoxes
+                    box.new(bar_index - 2, newFvg.bottomEdge, bar_index + lineLength, newFvg.topEdge,
+                            bgcolor=fvgBullColor, border_color=fvgBullColor, border_width=1)
+                if showLines
+                    line.new(bar_index, entry,   bar_index + lineLength, entry,   color=color.blue,  width=1)
+                    line.new(bar_index, tpPrice, bar_index + lineLength, tpPrice, color=color.green, width=1)
+                    line.new(bar_index, slPrice, bar_index + lineLength, slPrice, color=color.red,   width=1)
+                    label.new(bar_index, entry, "Long FVG\nR:R " + str.tostring(rr),
+                              color=color.new(color.blue, 70), textcolor=color.white,
+                              size=size.small, style=label.style_label_right)
+
+        else
+            // Short: SL at last swing high, TP at nearest swing low (minimum R:R enforced)
+            slPrice = lastPivotHigh
+
+            if not na(slPrice) and slPrice > entry
+                riskPts   = slPrice - entry
+                naturalTP = nearestBelow(recentPivotLows, entry)
+                tpPrice   = not na(naturalTP) and (entry - naturalTP) / riskPts >= minR2R
+                             ? naturalTP
+                             : entry - riskPts * minR2R
+                posSize   = math.max(1, math.round(riskDollars / (riskPts * contractMultiplier)))
+                rr        = math.round((entry - tpPrice) / riskPts, 2)
+
+                strategy.cancel_all()
+                strategy.entry("Short", strategy.short, posSize, limit=entry, comment="FVG Short")
+
+                tradeSL             := slPrice
+                tradeTP             := tpPrice
+                sessionTradeAllowed := false
+
+                if showBoxes
+                    box.new(bar_index - 2, newFvg.bottomEdge, bar_index + lineLength, newFvg.topEdge,
+                            bgcolor=fvgBearColor, border_color=fvgBearColor, border_width=1)
+                if showLines
+                    line.new(bar_index, entry,   bar_index + lineLength, entry,   color=color.blue,  width=1)
+                    line.new(bar_index, tpPrice, bar_index + lineLength, tpPrice, color=color.green, width=1)
+                    line.new(bar_index, slPrice, bar_index + lineLength, slPrice, color=color.red,   width=1)
+                    label.new(bar_index, entry, "Short FVG\nR:R " + str.tostring(rr),
+                              color=color.new(color.blue, 70), textcolor=color.white,
+                              size=size.small, style=label.style_label_right)
+
+// ═══════════════════════════════════════════════════════════
+// 7. EXIT MANAGEMENT
+// Check intrabar high/low against TP and SL each bar
+// ═══════════════════════════════════════════════════════════
+if isLong and not na(tradeSL) and not na(tradeTP)
+    if high >= tradeTP
+        strategy.close("Long", comment="TP")
+        tradeSL := na
+        tradeTP := na
+    else if low <= tradeSL
+        strategy.close("Long", comment="SL")
+        tradeSL := na
+        tradeTP := na
+
+if isShort and not na(tradeSL) and not na(tradeTP)
+    if low <= tradeTP
+        strategy.close("Short", comment="TP")
+        tradeSL := na
+        tradeTP := na
+    else if high >= tradeSL
+        strategy.close("Short", comment="SL")
+        tradeSL := na
+        tradeTP := na
+
+// Close all open positions at end of dataset
+if bar_index == last_bar_index
+    strategy.close_all()
