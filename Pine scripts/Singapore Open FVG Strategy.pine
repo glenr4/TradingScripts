@@ -231,3 +231,11 @@ if isShort and not na(tradeSL) and not na(tradeTP)
 // Close all open positions at end of dataset
 if bar_index == last_bar_index
     strategy.close_all()
+
+// ═══════════════════════════════════════════════════════════
+// DEBUG: visualize pivot tracking
+// ═══════════════════════════════════════════════════════════
+plot(lastPivotHigh, "Last Pivot High", color=color.new(color.red, 50), style=plot.style_stepline)
+plot(lastPivotLow,  "Last Pivot Low",  color=color.new(color.green, 50), style=plot.style_stepline)
+plotshape(not na(ph), "Pivot High Confirmed", shape.triangledown, location.abovebar, color.red,   size=size.tiny)
+plotshape(not na(pl), "Pivot Low Confirmed",  shape.triangleup,   location.belowbar, color.green, size=size.tiny)
