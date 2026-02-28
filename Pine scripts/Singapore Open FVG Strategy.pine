@@ -136,15 +136,37 @@ var float tradeTP = na
 // ═══════════════════════════════════════════════════════════
 lineLength = 40
 
+// Highest high in last N bars (skips zero-value session gap bars)
+highestRecent(int lookback) =>
+    float result = na
+    for i = 0 to lookback - 1
+        if high[i] > 0 and (na(result) or high[i] > result)
+            result := high[i]
+    result
+
+// Lowest low in last N bars (skips zero-value session gap bars)
+lowestRecent(int lookback) =>
+    float result = na
+    for i = 0 to lookback - 1
+        if low[i] > 0 and (na(result) or low[i] < result)
+            result := low[i]
+    result
+
 if windowOpen and sessionTradeAllowed and not isInTrade
     newFvg = detectFvg()
 
     if not na(newFvg)
         entry = newFvg.entryEdge
 
+        // Check recent bars too new to be confirmed as pivots (skips session gap bars with 0 values)
+        recentHigh = highestRecent(pivotRightBars + 3)
+        recentLow  = lowestRecent(pivotRightBars + 3)
+
         if newFvg.isBullish
-            // Long: SL at last swing low, TP at nearest swing high (minimum R:R enforced)
+            // Long: SL at last swing low, or lowest recent low if it's lower
             slPrice = lastPivotLow
+            if not na(recentLow)
+                slPrice := not na(slPrice) ? math.min(slPrice, recentLow) : recentLow
 
             if not na(slPrice) and slPrice < entry
                 riskPts   = entry - slPrice
@@ -157,6 +179,16 @@ if windowOpen and sessionTradeAllowed and not isInTrade
 
                 strategy.cancel_all()
                 strategy.entry("Long", strategy.long, posSize, limit=entry, comment="FVG Long")
+
+                log.info("LONG ENTRY DEBUG:" +
+                         "\n  lastPivotLow  = " + str.tostring(lastPivotLow) +
+                         "\n  recentLow     = " + str.tostring(recentLow) +
+                         "\n  slPrice       = " + str.tostring(slPrice) +
+                         "\n  entry         = " + str.tostring(entry) +
+                         "\n  riskPts       = " + str.tostring(riskPts) +
+                         "\n  tpPrice       = " + str.tostring(tpPrice) +
+                         "\n  rr            = " + str.tostring(rr) +
+                         "\n  posSize       = " + str.tostring(posSize))
 
                 tradeSL             := slPrice
                 tradeTP             := tpPrice
@@ -174,8 +206,10 @@ if windowOpen and sessionTradeAllowed and not isInTrade
                               size=size.small, style=label.style_label_right)
 
         else
-            // Short: SL at last swing high, TP at nearest swing low (minimum R:R enforced)
+            // Short: SL at last swing high, or highest recent high if it's higher
             slPrice = lastPivotHigh
+            if not na(recentHigh)
+                slPrice := not na(slPrice) ? math.max(slPrice, recentHigh) : recentHigh
 
             if not na(slPrice) and slPrice > entry
                 riskPts   = slPrice - entry
@@ -188,6 +222,16 @@ if windowOpen and sessionTradeAllowed and not isInTrade
 
                 strategy.cancel_all()
                 strategy.entry("Short", strategy.short, posSize, limit=entry, comment="FVG Short")
+
+                log.info("SHORT ENTRY DEBUG:" +
+                         "\n  lastPivotHigh = " + str.tostring(lastPivotHigh) +
+                         "\n  recentHigh    = " + str.tostring(recentHigh) +
+                         "\n  slPrice       = " + str.tostring(slPrice) +
+                         "\n  entry         = " + str.tostring(entry) +
+                         "\n  riskPts       = " + str.tostring(riskPts) +
+                         "\n  tpPrice       = " + str.tostring(tpPrice) +
+                         "\n  rr            = " + str.tostring(rr) +
+                         "\n  posSize       = " + str.tostring(posSize))
 
                 tradeSL             := slPrice
                 tradeTP             := tpPrice
@@ -235,7 +279,7 @@ if bar_index == last_bar_index
 // ═══════════════════════════════════════════════════════════
 // DEBUG: visualize pivot tracking
 // ═══════════════════════════════════════════════════════════
-plot(lastPivotHigh, "Last Pivot High", color=color.new(color.red, 50), style=plot.style_stepline)
-plot(lastPivotLow,  "Last Pivot Low",  color=color.new(color.green, 50), style=plot.style_stepline)
+plot(lastPivotHigh, "Last Pivot High", color=color.new(color.red, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
+plot(lastPivotLow,  "Last Pivot Low",  color=color.new(color.green, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
 plotshape(not na(ph), "Pivot High Confirmed", shape.triangledown, location.abovebar, color.red,   size=size.tiny)
 plotshape(not na(pl), "Pivot Low Confirmed",  shape.triangleup,   location.belowbar, color.green, size=size.tiny)
