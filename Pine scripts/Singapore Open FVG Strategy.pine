@@ -8,8 +8,8 @@ strategy("Singapore Open FVG Strategy", overlay=true, process_orders_on_close=tr
 // ═══════════════════════════════════════════════════════════
 // 0. INPUTS
 // ═══════════════════════════════════════════════════════════
-pivotLeftBars      = input.int(5,     "Pivot Left Bars",      minval=1, maxval=20,  group="Pivots")
-pivotRightBars     = input.int(5,     "Pivot Right Bars",     minval=1, maxval=20,  group="Pivots")
+pivotLeftBars      = input.int(4,     "Pivot Left Bars",      minval=1, maxval=20,  group="Pivots")
+pivotRightBars     = input.int(4,     "Pivot Right Bars",     minval=1, maxval=20,  group="Pivots")
 maxPivotHistory    = input.int(20,    "Pivot History Count",  minval=5, maxval=50,  group="Pivots")
 riskDollars        = input.float(500.0, "Risk ($)",           minval=1,             group="Risk Management")
 contractMultiplier = input.float(1.0,   "Contract Multiplier",minval=0.001,         group="Risk Management")
@@ -271,6 +271,20 @@ if isShort and not na(tradeSL) and not na(tradeTP)
         strategy.close("Short", comment="SL")
         tradeSL := na
         tradeTP := na
+
+// Close all open positions at end of session (5:55am SGT = 21:55 UTC)
+endOfSession = not na(time("", "2150-2155", "GMT+0"))
+startOfEOD   = ta.rising((endOfSession ? 1.0 : 0.0), 1)
+
+if startOfEOD and isInTrade
+    strategy.cancel_all() // Need to cancel linked OCO orders before closing position will work
+
+    if isLong
+        strategy.close("Long", comment="EOD")
+    if isShort
+        strategy.close("Short", comment="EOD")
+    tradeSL := na
+    tradeTP := na
 
 // Close all open positions at end of dataset
 if bar_index == last_bar_index
