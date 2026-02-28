@@ -13,7 +13,10 @@ pivotRightBars     = input.int(4,     "Pivot Right Bars",     minval=1, maxval=2
 maxPivotHistory    = input.int(20,    "Pivot History Count",  minval=5, maxval=50,  group="Pivots")
 riskDollars        = input.float(500.0, "Risk ($)",           minval=1,             group="Risk Management")
 contractMultiplier = input.float(1.0,   "Contract Multiplier",minval=0.001,         group="Risk Management")
-minR2R             = input.float(2.0,   "Min R:R",            minval=1.0, step=0.1, group="Risk Management")
+minR2R             = input.float(1.5,   "Min R:R",            minval=1.0, step=0.1, group="Risk Management")
+sessionTimezone    = input.string("GMT+8", "Timezone", options=["GMT-12","GMT-11","GMT-10","GMT-9","GMT-8","GMT-7","GMT-6","GMT-5","GMT-4","GMT-3","GMT-2","GMT-1","GMT+0","GMT+1","GMT+2","GMT+3","GMT+4","GMT+5","GMT+6","GMT+7","GMT+8","GMT+9","GMT+10","GMT+11","GMT+12"], group="Session")
+entryWindow        = input.string("0830-0930", "Entry Window (HHmm-HHmm)", group="Session")
+eodTime            = input.string("0550-0555", "End of Day Close (HHmm-HHmm)", group="Session")
 showBoxes          = input.bool(true,  "Show FVG Boxes",                            group="Display")
 showLines          = input.bool(true,  "Show Trade Lines",                          group="Display")
 fvgBullColor       = input.color(color.new(color.green, 80), "Bullish FVG Color",  group="Display")
@@ -21,9 +24,8 @@ fvgBearColor       = input.color(color.new(color.red,   80), "Bearish FVG Color"
 
 // ═══════════════════════════════════════════════════════════
 // 1. SESSION DETECTION
-// Singapore 9am–10am SGT = UTC+8, so 01:00–02:00 UTC
 // ═══════════════════════════════════════════════════════════
-inWindow    = not na(time("", "0100-0200", "GMT+0"))
+inWindow    = not na(time("", entryWindow, sessionTimezone))
 startWindow = ta.rising((inWindow ? 1.0 : 0.0), 1)
 
 var bool windowOpen          = false
@@ -272,8 +274,8 @@ if isShort and not na(tradeSL) and not na(tradeTP)
         tradeSL := na
         tradeTP := na
 
-// Close all open positions at end of session (5:55am SGT = 21:55 UTC)
-endOfSession = not na(time("", "2150-2155", "GMT+0"))
+// Close all open positions at end of session
+endOfSession = not na(time("", eodTime, sessionTimezone))
 startOfEOD   = ta.rising((endOfSession ? 1.0 : 0.0), 1)
 
 if startOfEOD and isInTrade
@@ -293,5 +295,5 @@ if bar_index == last_bar_index
 // ═══════════════════════════════════════════════════════════
 // DEBUG: visualize pivot tracking
 // ═══════════════════════════════════════════════════════════
-plot(lastPivotHigh, "Last Pivot High", color=color.new(color.red, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
-plot(lastPivotLow,  "Last Pivot Low",  color=color.new(color.green, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
+// plot(lastPivotHigh, "Last Pivot High", color=color.new(color.red, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
+// plot(lastPivotLow,  "Last Pivot Low",  color=color.new(color.green, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
