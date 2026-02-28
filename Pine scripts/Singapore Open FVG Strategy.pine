@@ -281,5 +281,3 @@ if bar_index == last_bar_index
 // ═══════════════════════════════════════════════════════════
 plot(lastPivotHigh, "Last Pivot High", color=color.new(color.red, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
 plot(lastPivotLow,  "Last Pivot Low",  color=color.new(color.green, 50), style=plot.style_stepline, linestyle = plot.linestyle_dashed, linewidth = 2)
-plotshape(not na(ph), "Pivot High Confirmed", shape.triangledown, location.abovebar, color.red,   size=size.tiny)
-plotshape(not na(pl), "Pivot Low Confirmed",  shape.triangleup,   location.belowbar, color.green, size=size.tiny)
