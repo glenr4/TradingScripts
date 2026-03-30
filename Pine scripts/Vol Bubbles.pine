@@ -92,4 +92,7 @@ if ta.cum(volume) <= 0 and barstate.islast
     label.new(bar_index, hl2, "No Volume Data Provided\n Use other Symbol", 
                  style     = label.style_label_left, 
                  textcolor = chart.fg_color)
-//#endregion
+
+// Alert for high volume bubbles (col4/col5 heatmap colours)
+bool highVolBubble = norm_vol >= 4 and bubles
+alertcondition(highVolBubble, "High Volume Bubble", "High Volume Bubble")
