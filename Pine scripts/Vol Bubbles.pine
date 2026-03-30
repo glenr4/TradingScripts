@@ -35,7 +35,7 @@ color col5  = #d32626
 // @variable Color definitions for significant level boxes
 color boxFill   = input.color(color.new(color.blue, 90), "Box Fill", group = "Volume Levels")
 color boxBorder = input.color(color.new(color.blue, 70), "Box Border", group = "Volume Levels")
-float boxRadius = input.float(1.0, "Box Radius (ATR)", step = 0.1, minval = 0.1, group = "Volume Levels")
+float boxRadius = input.float(0.5, "Box Radius (ATR)", step = 0.1, minval = 0.1, group = "Volume Levels")
 //#endregion
 
 //#region ———————————————————— Calculations
@@ -67,10 +67,10 @@ float bubbleRadius = atr * boxRadius
 
 // @variable Conditions for different volume levels
 bool condition1 = norm_vol > 0 and norm_vol < threshold and bubles
-bool condition2 = norm_vol > threshold and norm_vol < 3  and bubles
-bool condition3 = norm_vol > threshold+2 and norm_vol < 4 and bubles
-bool condition4 = norm_vol > threshold+3 and norm_vol < 6 and bubles
-bool condition5 = norm_vol > 6
+bool condition2 = norm_vol >= threshold and norm_vol < 3  and bubles
+bool condition3 = norm_vol >= threshold+2 and norm_vol < 4 and bubles
+bool condition4 = norm_vol >= threshold+3 and norm_vol < 6 and bubles
+bool condition5 = norm_vol >= 6
 //#endregion
 
 //#region ———————————————————— Plotting
