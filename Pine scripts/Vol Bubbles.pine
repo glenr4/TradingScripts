@@ -3,7 +3,7 @@
 // © BigBeluga
 
 //@version=5
-indicator("Volume Bubbles", overlay = true)
+indicator("Volume Bubbles", overlay = true, max_boxes_count = 500)
 // Original: Bubbles Volume [BigBeluga]
 
 //#region ———————————————————— Inputs
@@ -17,7 +17,7 @@ bool  color_     = input.bool(true, "HeatMap", group = "Bubles")
 // @variable Toggle to show significant volume levels
 bool  levels     = input.bool(true, "Significant Levels", "Significant Volume Levels", group = "Volume Levels")
 // @variable Qty of significant volume levels
-int   levels_qty = input.int(10, "Levels Qty", group = "Volume Levels")
+int   levels_qty = input.int(10, "Max Levels", group = "Volume Levels")
 
 // @variable Number of consecutive low volume bubbles to trigger alert
 int   lowVolCount = input.int(5, "Consecutive Low Vol Bars", minval = 2, group = "Alerts")
@@ -36,6 +36,7 @@ color col5  = #d32626
 color boxFill   = input.color(color.new(color.blue, 90), "Box Fill", group = "Volume Levels")
 color boxBorder = input.color(color.new(color.blue, 70), "Box Border", group = "Volume Levels")
 float boxRadius = input.float(0.5, "Box Radius (ATR)", step = 0.1, minval = 0.1, group = "Volume Levels")
+int   boxLength = input.int(100, "Box Length (bars)", minval = 1, group = "Volume Levels")
 //#endregion
 
 //#region ———————————————————— Calculations
@@ -81,7 +82,10 @@ if condition5 and (levels or bubles)
 
 // Plot boxes for significant volume levels (col4/col5 bubbles)
 if (condition4 or condition5) and levels
-    box.new(bar_index, source + bubbleRadius, last_bar_index, source - bubbleRadius, boxBorder, 1, line.style_solid, extend.none, xloc.bar_index, boxFill)
+    // Remove oldest boxes to stay within limit before adding new one
+    while array.size(box.all) >= levels_qty
+        box.delete(array.shift(box.all))
+    box.new(bar_index, source + bubbleRadius, bar_index + boxLength, source - bubbleRadius, boxBorder, 1, line.style_solid, extend.none, xloc.bar_index, boxFill)
 
 // Plot volume bubbles of different sizes based on volume levels
 plotshape(condition1 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.tiny)
@@ -90,11 +94,7 @@ plotshape(condition3 ? source : na, "", shape.circle, location.absolute, gradien
 plotshape(condition4 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.large)
 plotshape(condition5 and bubles ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.huge)
 
-// Manage the number of boxes and labels on the chart
-a_allBoxes = box.all
-if array.size(a_allBoxes) > levels_qty
-    box.delete(array.shift(a_allBoxes))
-
+// Manage the number of labels on the chart
 a_allLabels = label.all
 if array.size(a_allLabels) > levels_qty and not bubles
     label.delete(array.shift(a_allLabels))
