@@ -31,6 +31,11 @@ color col2  = color.new(color.green, 50)
 color col3  = color.new(color.yellow, 50)
 color col4  = color.new(color.orange, 30)
 color col5  = #d32626
+
+// @variable Color definitions for significant level boxes
+color boxFill   = input.color(color.new(color.blue, 90), "Box Fill", group = "Volume Levels")
+color boxBorder = input.color(color.new(color.blue, 70), "Box Border", group = "Volume Levels")
+float boxRadius = input.float(1.0, "Box Radius (ATR)", step = 0.1, minval = 0.1, group = "Volume Levels")
 //#endregion
 
 //#region ———————————————————— Calculations
@@ -56,6 +61,10 @@ color gradient_col    = not color_
                           ? color.from_gradient(norm_vol, 4, 8, col4, col5) : na
                           )
 
+// @variable ATR-based bubble radius
+float atr          = ta.atr(14)
+float bubbleRadius = atr * boxRadius
+
 // @variable Conditions for different volume levels
 bool condition1 = norm_vol > 0 and norm_vol < threshold and bubles
 bool condition2 = norm_vol > threshold and norm_vol < 3  and bubles
@@ -70,9 +79,9 @@ if condition5 and (levels or bubles)
     label.new(bubles ? bar_index : last_bar_index, source, str.tostring(volume, format.volume), xloc.bar_index, yloc.price ,
                  #00000000, bubles ? label.style_label_center : label.style_label_left, chart.fg_color)
 
-// Plot lines for significant volume levels
-if condition5 and levels
-    line.new(bar_index, source, last_bar_index, source, xloc.bar_index, extend.none, gradient_col, width = 2) 
+// Plot boxes for significant volume levels (col4/col5 bubbles)
+if (condition4 or condition5) and levels
+    box.new(bar_index, source + bubbleRadius, last_bar_index, source - bubbleRadius, boxBorder, 1, line.style_solid, extend.none, xloc.bar_index, boxFill)
 
 // Plot volume bubbles of different sizes based on volume levels
 plotshape(condition1 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.tiny)
@@ -81,10 +90,10 @@ plotshape(condition3 ? source : na, "", shape.circle, location.absolute, gradien
 plotshape(condition4 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.large)
 plotshape(condition5 and bubles ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.huge)
 
-// Manage the number of lines and labels on the chart
-a_allLines = line.all
-if array.size(a_allLines) > levels_qty
-    line.delete(array.shift(a_allLines))
+// Manage the number of boxes and labels on the chart
+a_allBoxes = box.all
+if array.size(a_allBoxes) > levels_qty
+    box.delete(array.shift(a_allBoxes))
 
 a_allLabels = label.all
 if array.size(a_allLabels) > levels_qty and not bubles
