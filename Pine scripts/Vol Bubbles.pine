@@ -12,7 +12,7 @@ bool  bubles     = input.bool(true, "", group = "Bubles", inline = "1")
 // @variable Threshold for volume significance
 float threshold  = input.float(2, "Threshold", step = 0.1, maxval = 7, group = "Bubles", inline = "1")
 // @variable Toggle for heatmap coloring
-bool  color_     = input.bool(true, "HeatMap", group = "Bubles")
+bool  heatmapEnabled     = input.bool(true, "HeatMap", group = "Bubles")
 
 // @variable Toggle to show significant volume levels
 bool  levels     = input.bool(true, "Significant Levels", "Significant Volume Levels", group = "Volume Levels")
@@ -46,7 +46,7 @@ series float source   = hl2
 series float norm_vol = VOL / ta.stdev(VOL, 200)
 
 // @variable Color gradient based on normalized volume
-color gradient_col    = not color_
+color gradient_col    = not heatmapEnabled
                          ? color.from_gradient(
                              norm_vol, 0, 8, 
                              chart.bg_color == color.white ? color.new(m_col, 100) : color.rgb(18, 34, 18, 50),
@@ -69,7 +69,7 @@ float bubbleRadius = atr * boxRadius
 // @variable Conditions for different volume levels
 bool condition1 = norm_vol > 0 and norm_vol < threshold and bubles
 bool condition2 = norm_vol >= threshold and norm_vol < 3  and bubles
-bool condition3 = norm_vol >= threshold+2 and norm_vol < 4 and bubles
+bool condition3 = norm_vol >= threshold+2 and norm_vol < 4 and bubles   // with threshold=2 this will never show
 bool condition4 = norm_vol >= threshold+3 and norm_vol < 6 and bubles
 bool condition5 = norm_vol >= 6
 //#endregion
@@ -89,8 +89,8 @@ if (condition4 or condition5) and levels
 
 // Plot volume bubbles of different sizes based on volume levels
 plotshape(condition1 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.tiny)
-plotshape(condition2 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.small)
-plotshape(condition3 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.normal)
+// plotshape(condition2 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.small)
+// plotshape(condition3 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.normal)
 plotshape(condition4 ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.large)
 plotshape(condition5 and bubles ? source : na, "", shape.circle, location.absolute, gradient_col, 0, "", na, size = size.huge)
 
