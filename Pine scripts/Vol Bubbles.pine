@@ -19,6 +19,9 @@ bool  levels     = input.bool(true, "Significant Levels", "Significant Volume Le
 // @variable Qty of significant volume levels
 int   levels_qty = input.int(10, "Levels Qty", group = "Volume Levels")
 
+// @variable Number of consecutive low volume bubbles to trigger alert
+int   lowVolCount = input.int(5, "Consecutive Low Vol Bars", minval = 2, group = "Alerts")
+
 // @variable Main color for volume bubbles
 color m_col = color.green
  
@@ -92,6 +95,14 @@ if ta.cum(volume) <= 0 and barstate.islast
     label.new(bar_index, hl2, "No Volume Data Provided\n Use other Symbol", 
                  style     = label.style_label_left, 
                  textcolor = chart.fg_color)
+
+// Track consecutive low volume bubbles (col1/col2 heatmap colours: norm_vol < 1)
+bool isLowVol       = norm_vol < 1 and norm_vol > 0 and bubles
+int  consecLowVol   = 0
+consecLowVol       := isLowVol ? nz(consecLowVol[1]) + 1 : 0
+
+// Alert for consecutive low volume bubbles
+alertcondition(consecLowVol >= lowVolCount, "Consecutive Low Volume", "Consecutive Low Volume")
 
 // Alert for high volume bubbles (col4/col5 heatmap colours)
 bool highVolBubble = norm_vol >= 4 and bubles
