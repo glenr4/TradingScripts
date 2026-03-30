@@ -10,12 +10,12 @@ indicator("Volume Bubbles", overlay = true)
 // @variable Toggle to show volume bubbles
 bool  bubles     = input.bool(true, "", group = "Bubles", inline = "1")
 // @variable Threshold for volume significance
-float threshold  = input.float(1, "Threshold", step = 0.1, maxval = 7, group = "Bubles", inline = "1")
+float threshold  = input.float(2, "Threshold", step = 0.1, maxval = 7, group = "Bubles", inline = "1")
 // @variable Toggle for heatmap coloring
-bool  color_     = input.bool(false, "HeatMap", group = "Bubles")
+bool  color_     = input.bool(true, "HeatMap", group = "Bubles")
 
 // @variable Toggle to show significant volume levels
-bool  levels     = input.bool(false, "Significant Levels", "Significant Volume Levels", group = "Volume Levels")
+bool  levels     = input.bool(true, "Significant Levels", "Significant Volume Levels", group = "Volume Levels")
 // @variable Qty of significant volume levels
 int   levels_qty = input.int(10, "Levels Qty", group = "Volume Levels")
 
