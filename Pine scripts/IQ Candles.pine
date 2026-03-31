@@ -203,8 +203,11 @@ if showAbsorption and sizeLim
     buyAbsThresh   = buyAbsVals.percentile_nearest_rank(absScorePct)
     sellAbsThresh  = sellAbsVals.percentile_nearest_rank(absScorePct)
 
-    buyAbsorption  := buyDom >= buyDomThresh and buyAbsRaw >= buyAbsThresh
-    sellAbsorption := sellDom >= sellDomThresh and sellAbsRaw >= sellAbsThresh
+    upperWick = high - math.max(open, close)
+    lowerWick = math.min(open, close) - low
+
+    buyAbsorption  := buyDom >= buyDomThresh and buyAbsRaw > 0 and buyAbsRaw >= buyAbsThresh and upperWick > lowerWick
+    sellAbsorption := sellDom >= sellDomThresh and sellAbsRaw > 0 and sellAbsRaw >= sellAbsThresh and lowerWick > upperWick
 
 atr = ta.atr(14)
 
