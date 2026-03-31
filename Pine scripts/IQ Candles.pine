@@ -11,26 +11,26 @@ showMain       = input.bool(defval = true, title = "Enable", group = "Main Setti
 deltaMode      = input.bool(defval = false, title = "Delta Mode", group = "Main Settings", active = showMain)
 smooth         = input.bool(defval = false, title = "Use Smoothing", group = "Main Settings", inline = "Smoothing", active = showMain)
 smoothLook     = input.int(defval = 200, minval = 5, title = "Length", inline = "Smoothing", group = "Main Settings", active = smooth)
-buyVolColor    = input.color(#55ffda, title = "▲ Vol", inline = "Buy Vol Col", group = "Main Settings", active = showMain)
+buyVolColor    = input.color(defval = #066024, title = "▲ Vol", inline = "Buy Vol Col", group = "Main Settings", active = showMain)
 buyVolTranspMax = input.int(defval = 25, title = "Transp", minval = 0, maxval = 100, inline = "Buy Vol Col", group = "Main Settings", active = showMain)
 buyVolTranspMin = input.int(defval = 90, title = " - ", minval = 0, maxval = 100, inline = "Buy Vol Col", group = "Main Settings", active = showMain)     
 
-sellVolColor    = input.color(color.rgb(255, 116, 116), title = "▼ Sell Voll", inline = "Sell Vol Color", active = showMain)
+sellVolColor    = input.color(color.rgb(109, 3, 3), title = "▼ Sell Voll", inline = "Sell Vol Color", active = showMain)
 sellVolTranspMax = input.int(defval = 25, title = "Transp", minval = 0, maxval = 100, inline = "Sell Vol Color", active = showMain)
 sellVolTranspMin = input.int(defval = 90, title = " - ", minval = 0, maxval = 100, inline = "Sell Vol Color", active = showMain)     
 
 showImbalance  = input.bool(defval = true, title = "Show Imbalances", group = "Imb", tooltip = "An imbalance occurs when one side's volume ratio meets or exceeds the threshold. For example, at 0.7 (70%), a bar is flagged as a buy imbalance if buying volume accounts for 70% or more of total volume. Higher thresholds produce fewer but more extreme signals.")
 imbThresh      = input.float(defval = 0.7, minval = 0.6, maxval = 1, active = showImbalance, title = "Imbalance Threshold", group = "Imb")
-imbBuyCol      = input.color(defval = #5574ff, inline = "Imb", group = "Imb", title = "▲")
-imbSellCol     = input.color(defval = #f955ff, inline = "Imb", group = "Imb", title = "▼")
+imbBuyCol      = input.color(defval = #0df705, inline = "Imb", group = "Imb", title = "▲")
+imbSellCol     = input.color(defval = #f90606, inline = "Imb", group = "Imb", title = "▼")
 imbTranspMax   = input.int(defval = 75, title = "Transp", minval = 0, maxval = 100, inline = "Imb Transp", group = "Imb", active = showImbalance)
 imbTranspMin   = input.int(defval = 0, title = " - ", minval = 0, maxval = 100, inline = "Imb Transp", group = "Imb", active = showImbalance)
 
 showAbsorption  = input.bool(true, "Show Absorption", group = "Abs", tooltip = "Absorption means one side dominates volume but price doesn't reflect it — heavy buying with a weak bullish body (or heavy selling with a weak bearish body), suggesting the opposite side is absorbing the pressure.")
 absDomPct       = input.float(80, "Dominance Percentile", minval = 50, maxval = 99.9, group = "Abs")
 absScorePct     = input.float(95, "Absorption Score Percentile", minval = 50, maxval = 99.9, group = "Abs")
-absBuyCol       = input.color(#5574ff, "Buy Absorption Color", group = "Abs", inline = "AbsCol")
-absSellCol      = input.color(#f955ff, "Sell Absorption Color", group = "Abs", inline = "AbsCol")
+absBuyCol       = input.color(defval = #0df705, "Buy Absorption Color", group = "Abs", inline = "AbsCol")
+absSellCol      = input.color(defval = #f90506, "Sell Absorption Color", group = "Abs", inline = "AbsCol")
 useExtendedRule = input.bool(defval = false, title = "Only Show For Extended Price Moves")
 
 direction() => 
