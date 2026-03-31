@@ -11,11 +11,11 @@ showMain       = input.bool(defval = true, title = "Enable", group = "Main Setti
 deltaMode      = input.bool(defval = false, title = "Delta Mode", group = "Main Settings", active = showMain)
 smooth         = input.bool(defval = false, title = "Use Smoothing", group = "Main Settings", inline = "Smoothing", active = showMain)
 smoothLook     = input.int(defval = 200, minval = 5, title = "Length", inline = "Smoothing", group = "Main Settings", active = smooth)
-buyVolColor    = input.color(defval = #066024, title = "▲ Vol", inline = "Buy Vol Col", group = "Main Settings", active = showMain)
+buyVolColor    = input.color(defval = #4caf50, title = "▲ Vol", inline = "Buy Vol Col", group = "Main Settings", active = showMain)
 buyVolTranspMax = input.int(defval = 25, title = "Transp", minval = 0, maxval = 100, inline = "Buy Vol Col", group = "Main Settings", active = showMain)
 buyVolTranspMin = input.int(defval = 90, title = " - ", minval = 0, maxval = 100, inline = "Buy Vol Col", group = "Main Settings", active = showMain)     
 
-sellVolColor    = input.color(color.rgb(109, 3, 3), title = "▼ Sell Voll", inline = "Sell Vol Color", active = showMain)
+sellVolColor    = input.color(defval = #b22833, title = "▼ Sell Voll", inline = "Sell Vol Color", active = showMain)
 sellVolTranspMax = input.int(defval = 25, title = "Transp", minval = 0, maxval = 100, inline = "Sell Vol Color", active = showMain)
 sellVolTranspMin = input.int(defval = 90, title = " - ", minval = 0, maxval = 100, inline = "Sell Vol Color", active = showMain)     
 
@@ -29,8 +29,8 @@ imbTranspMin   = input.int(defval = 0, title = " - ", minval = 0, maxval = 100, 
 showAbsorption  = input.bool(true, "Show Absorption", group = "Abs", tooltip = "Absorption means one side dominates volume but price doesn't reflect it — heavy buying with a weak bullish body (or heavy selling with a weak bearish body), suggesting the opposite side is absorbing the pressure.")
 absDomPct       = input.float(80, "Dominance Percentile", minval = 50, maxval = 99.9, group = "Abs")
 absScorePct     = input.float(95, "Absorption Score Percentile", minval = 50, maxval = 99.9, group = "Abs")
-absBuyCol       = input.color(defval = #0df705, "Buy Absorption Color", group = "Abs", inline = "AbsCol")
-absSellCol      = input.color(defval = #f90506, "Sell Absorption Color", group = "Abs", inline = "AbsCol")
+absBuyCol       = input.color(defval = #0df705, title = "Buy Absorption Color", group = "Abs", inline = "AbsCol")
+absSellCol      = input.color(defval = #f90506, title = "Sell Absorption Color", group = "Abs", inline = "AbsCol")
 useExtendedRule = input.bool(defval = false, title = "Only Show For Extended Price Moves")
 
 direction() => 
@@ -219,89 +219,9 @@ condSell = switch showAbsorption and sellAbsorption and isExtendedSell
 plotcandle(math.max(open, close), high, math.max(open, close), high, color = #00000000, wickcolor = #00000000, bordercolor = showAbsorption and buyAbsorption and isExtendedBuy ? absBuyCol : na, force_overlay = true, display = display.pane)
 plotcandle(math.min(open, close), low, math.min(open, close), low, color = #00000000, wickcolor = #00000000, bordercolor = showAbsorption and sellAbsorption and isExtendedSell ? absSellCol : na, force_overlay = true, display = display.pane)
 
-plot(condBuy,  title = "Buy Absorption", color = absBuyCol, linewidth = 3, force_overlay = true, style = plot.style_circles)
-plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 94), linewidth = 5, force_overlay = true, style = plot.style_circles)
-plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 96), linewidth = 7, force_overlay = true, style = plot.style_circles)
-plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 98), linewidth = 9, force_overlay = true, style = plot.style_circles)
-plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 99), linewidth = 11, force_overlay = true, style = plot.style_circles)
-
-plot(condSell,  title = "Sell Absorption", color = absSellCol, linewidth = 3, force_overlay = true, style = plot.style_circles)
-plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 94), linewidth = 5, force_overlay = true, style = plot.style_circles)
-plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 96), linewidth = 7, force_overlay = true, style = plot.style_circles)
-plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 98), linewidth = 9, force_overlay = true, style = plot.style_circles)
-plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 99), linewidth = 11, force_overlay = true, style = plot.style_circles)
 
 plotshape(condBuy,  title = "Buy Absorption",  style = shape.triangledown, location = location.abovebar, color = #00000000,  size = size.tiny, force_overlay = true, text = "Abs", textcolor = absBuyCol)
 plotshape(condSell, title = "Sell Absorption", style = shape.triangleup,   location = location.belowbar, color = #00000000, size = size.tiny, text = "Abs", force_overlay = true, textcolor = absSellCol)
-
-var tab = table.new(position.bottom_right, 99, 99, bgcolor = #20222C, border_color = #363843, frame_color = #363843, force_overlay = true, border_width = 1, frame_width = 1)
-
-if barstate.islast 
-    domSideTxt = switch
-        rawRatioBuy > rawRatioSell => "Buy"
-        rawRatioSell > rawRatioBuy => "Sell"
-        => "Equal"
-
-    domCol = switch domSideTxt
-        "Buy"  => buyVolColor
-        "Sell" => sellVolColor
-        => color.white
-
-    deltaRatioCol = switch math.sign(rawNetDom)
-        1  => buyVolColor
-        -1 => sellVolColor 
-        => color.white
-
-    imbTxt = switch
-        rawImbBuy  => "Buy"
-        rawImbSell => "Sell"
-        => "None"
-
-    imbCol = switch
-        rawImbBuy  => imbBuyCol
-        rawImbSell => imbSellCol
-        => color.white
-
-    absTxt = switch
-        buyAbsorption  => "Buy"
-        sellAbsorption => "Sell"
-        => "None"
-
-    absCol = switch
-        buyAbsorption  => absBuyCol
-        sellAbsorption => absSellCol
-        => color.white
-
-    var expCol = #181b27
-
-    tab.cell(0, 0, "Candle Radar", text_color = color.white)
-
-    tab.cell(0, 1, "Buy Side:", text_color = color.white, bgcolor = expCol, text_size = 12)
-    tab.cell(1, 1, str.tostring(rawBuyPressure, format.volume), text_color = buyVolColor, bgcolor = expCol, text_size = 12)
-
-    tab.cell(2, 1, "Sell Side:", text_color = color.white, bgcolor = expCol, text_size = 12)
-    tab.cell(3, 1, str.tostring(rawSellPressure, format.volume), text_color = sellVolColor, bgcolor = expCol, text_size = 12)
-
-    tab.cell(0, 2, "Buy %:", text_color = color.white, text_size = 12)
-    tab.cell(1, 2, str.tostring(rawRatioBuy * 100, format.percent), text_color = buyVolColor, text_size = 12)
-
-    tab.cell(2, 2, "Sell %:", text_color = color.white, text_size = 12)
-    tab.cell(3, 2, str.tostring(rawRatioSell * 100, format.percent), text_color = sellVolColor, text_size = 12)
-
-    tab.cell(0, 3, "Delta Ratio:", text_color = color.white, bgcolor = expCol, text_size = 12)
-    tab.cell(1, 3, str.tostring(rawNetDom * 100, format.percent), text_color = deltaRatioCol, bgcolor = expCol, text_size = 12)
-
-    tab.cell(2, 3, "Control:", text_color = color.white, bgcolor = expCol, text_size = 12)
-    tab.cell(3, 3, domSideTxt, text_color = domCol, bgcolor = expCol, text_size = 12)
-
-    tab.cell(0, 4, "Imbalance:", text_color = color.white, text_size = 12)
-    tab.cell(1, 4, imbTxt, text_color = imbCol, text_size = 12)
-
-    tab.cell(2, 4, "Absorption:", text_color = color.white, text_size = 12)
-    tab.cell(3, 4, absTxt, text_color = absCol, text_size = 12)
-
-    tab.merge_cells(0, 0, 3, 0)
-
 
 if barstate.islastconfirmedhistory
     if showWarning 
