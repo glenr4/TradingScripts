@@ -220,8 +220,8 @@ plotcandle(math.max(open, close), high, math.max(open, close), high, color = #00
 plotcandle(math.min(open, close), low, math.min(open, close), low, color = #00000000, wickcolor = #00000000, bordercolor = showAbsorption and sellAbsorption and isExtendedSell ? absSellCol : na, force_overlay = true, display = display.pane)
 
 
-plotshape(condBuy,  title = "Buy Absorption",  style = shape.triangledown, location = location.abovebar, color = #00000000,  size = size.tiny, force_overlay = true, text = "Abs", textcolor = absBuyCol)
-plotshape(condSell, title = "Sell Absorption", style = shape.triangleup,   location = location.belowbar, color = #00000000, size = size.tiny, text = "Abs", force_overlay = true, textcolor = absSellCol)
+plotshape(condBuy,  title = "Buy Absorption",  style = shape.triangledown, location = location.abovebar, color = absBuyCol,  size = size.tiny, force_overlay = true)
+plotshape(condSell, title = "Sell Absorption", style = shape.triangleup,   location = location.belowbar, color = absSellCol, size = size.tiny, force_overlay = true)
 
 if barstate.islastconfirmedhistory
     if showWarning 
