@@ -29,8 +29,8 @@ imbTranspMin   = input.int(defval = 0, title = " - ", minval = 0, maxval = 100, 
 showAbsorption  = input.bool(true, "Show Absorption", group = "Abs", tooltip = "Absorption means one side dominates volume but price doesn't reflect it — heavy buying with a weak bullish body (or heavy selling with a weak bearish body), suggesting the opposite side is absorbing the pressure.")
 absDomPct       = input.float(80, "Dominance Percentile", minval = 50, maxval = 99.9, group = "Abs")
 absScorePct     = input.float(95, "Absorption Score Percentile", minval = 50, maxval = 99.9, group = "Abs")
-absBuyCol       = input.color(defval = #0df705, title = "Buy Absorption Color", group = "Abs", inline = "AbsCol")
-absSellCol      = input.color(defval = #f90506, title = "Sell Absorption Color", group = "Abs", inline = "AbsCol")
+absBuyCol       = input.color(defval = #f90506, title = "Buying Absorption Color", group = "Abs", inline = "AbsCol")
+absSellCol      = input.color(defval = #0df705, title = "Selling Absorption Color", group = "Abs", inline = "AbsCol")
 useExtendedRule = input.bool(defval = false, title = "Only Show For Extended Price Moves")
 
 direction() => 
