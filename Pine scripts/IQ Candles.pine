@@ -1,0 +1,309 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TradingIQ
+
+//@version=6
+indicator("IQ Candles", overlay=false)
+
+TF = input.timeframe(defval = "1", title = "Lower Timeframe Volume")
+showWarning = input.bool(defval = true, title = "Show Warning", group = "Warning")
+
+showMain       = input.bool(defval = true, title = "Enable", group = "Main Settings")
+deltaMode      = input.bool(defval = false, title = "Delta Mode", group = "Main Settings", active = showMain)
+smooth         = input.bool(defval = false, title = "Use Smoothing", group = "Main Settings", inline = "Smoothing", active = showMain)
+smoothLook     = input.int(defval = 200, minval = 5, title = "Length", inline = "Smoothing", group = "Main Settings", active = smooth)
+buyVolColor    = input.color(#55ffda, title = "▲ Vol", inline = "Buy Vol Col", group = "Main Settings", active = showMain)
+buyVolTranspMax = input.int(defval = 25, title = "Transp", minval = 0, maxval = 100, inline = "Buy Vol Col", group = "Main Settings", active = showMain)
+buyVolTranspMin = input.int(defval = 90, title = " - ", minval = 0, maxval = 100, inline = "Buy Vol Col", group = "Main Settings", active = showMain)     
+
+sellVolColor    = input.color(color.rgb(255, 116, 116), title = "▼ Sell Voll", inline = "Sell Vol Color", active = showMain)
+sellVolTranspMax = input.int(defval = 25, title = "Transp", minval = 0, maxval = 100, inline = "Sell Vol Color", active = showMain)
+sellVolTranspMin = input.int(defval = 90, title = " - ", minval = 0, maxval = 100, inline = "Sell Vol Color", active = showMain)     
+
+showImbalance  = input.bool(defval = true, title = "Show Imbalances", group = "Imb", tooltip = "An imbalance occurs when one side's volume ratio meets or exceeds the threshold. For example, at 0.7 (70%), a bar is flagged as a buy imbalance if buying volume accounts for 70% or more of total volume. Higher thresholds produce fewer but more extreme signals.")
+imbThresh      = input.float(defval = 0.7, minval = 0.6, maxval = 1, active = showImbalance, title = "Imbalance Threshold", group = "Imb")
+imbBuyCol      = input.color(defval = #5574ff, inline = "Imb", group = "Imb", title = "▲")
+imbSellCol     = input.color(defval = #f955ff, inline = "Imb", group = "Imb", title = "▼")
+imbTranspMax   = input.int(defval = 75, title = "Transp", minval = 0, maxval = 100, inline = "Imb Transp", group = "Imb", active = showImbalance)
+imbTranspMin   = input.int(defval = 0, title = " - ", minval = 0, maxval = 100, inline = "Imb Transp", group = "Imb", active = showImbalance)
+
+showAbsorption  = input.bool(true, "Show Absorption", group = "Abs", tooltip = "Absorption means one side dominates volume but price doesn't reflect it — heavy buying with a weak bullish body (or heavy selling with a weak bearish body), suggesting the opposite side is absorbing the pressure.")
+absDomPct       = input.float(80, "Dominance Percentile", minval = 50, maxval = 99.9, group = "Abs")
+absScorePct     = input.float(95, "Absorption Score Percentile", minval = 50, maxval = 99.9, group = "Abs")
+absBuyCol       = input.color(#5574ff, "Buy Absorption Color", group = "Abs", inline = "AbsCol")
+absSellCol      = input.color(#f955ff, "Sell Absorption Color", group = "Abs", inline = "AbsCol")
+useExtendedRule = input.bool(defval = false, title = "Only Show For Extended Price Moves")
+
+direction() => 
+    if TF == "1T" 
+        switch 
+            close == bid => -1 
+            close == ask =>  1
+            =>               math.sign(close - close[1]) 
+    else 
+        math.sign(close - close[1])
+
+[ltfV, ltfD, ltfC, ltfH, ltfL, smoothedDom] = request.security_lower_tf(syminfo.tickerid, TF, [volume * direction(), math.sign(close - close[1]), close, high, low, ta.ema(volume * direction(), smoothLook)])
+
+getLTFsize = ltfV.size() - 1
+
+buyPressure  = 0.0
+sellPressure = 0.0
+sum          = 0.0
+ratioBuy     = 0.0
+ratioSell    = 0.0
+
+rawBuyPressure  = 0.0
+rawSellPressure = 0.0
+rawSum          = 0.0
+rawRatioBuy     = 0.0
+rawRatioSell    = 0.0
+
+var buyPressureVals  = array.new<float>()
+var sellPressureVals = array.new<float>()
+
+if buyPressureVals.size() > 1000
+    buyPressureVals.shift()
+    sellPressureVals.shift()
+
+if getLTFsize > 0 
+    for i = 0 to getLTFsize
+
+        rawVol  = ltfV.get(i)
+
+        dispVol = switch smooth
+            true => smoothedDom.get(i) 
+            =>      rawVol
+
+        switch math.sign(rawVol) == 1
+            true  => rawBuyPressure += math.abs(rawVol)
+            false => rawSellPressure += math.abs(rawVol)
+
+        switch math.sign(dispVol) == 1
+            true  => buyPressure += math.abs(dispVol)
+            false => sellPressure += math.abs(dispVol)
+
+    rawSum := rawBuyPressure + rawSellPressure
+    rawRatioBuy  := nz(rawBuyPressure / rawSum)
+    rawRatioSell := nz(rawSellPressure / rawSum)
+
+    sum := buyPressure + sellPressure
+    ratioBuy  := nz(buyPressure / sum) 
+    ratioSell := nz(sellPressure / sum) 
+
+    buyPressureVals.push(buyPressure)
+    sellPressureVals.push(sellPressure)
+
+imbBuy  = ratioBuy >= imbThresh
+imbSell = ratioSell >= imbThresh
+
+rawImbBuy  = rawRatioBuy >= imbThresh
+rawImbSell = rawRatioSell >= imbThresh
+
+imbBuyGrad  = color.from_gradient(ratioBuy, imbThresh, 1.0, color.new(imbBuyCol, imbTranspMax), color.new(imbBuyCol, imbTranspMin))
+imbSellGrad = color.from_gradient(ratioSell, imbThresh, 1.0, color.new(imbSellCol, imbTranspMax), color.new(imbSellCol, imbTranspMin))
+
+buyPressureCol = switch
+    showImbalance and imbBuy => imbBuyGrad
+    =>                          color.from_gradient(buyPressure, buyPressureVals.percentile_nearest_rank(5), buyPressureVals.percentile_nearest_rank(95), color.new(buyVolColor, buyVolTranspMin), color.new(buyVolColor, buyVolTranspMax))
+
+sellPressureCol = switch
+    showImbalance and imbSell => imbSellGrad
+    =>                           color.from_gradient(sellPressure, sellPressureVals.percentile_nearest_rank(5), sellPressureVals.percentile_nearest_rank(95), color.new(sellVolColor, sellVolTranspMin), color.new(sellVolColor, sellVolTranspMax))
+
+[colColBuy, colColSell] = switch
+    not showImbalance => [buyPressureCol, sellPressureCol]
+    imbBuy  =>           [imbBuyGrad, sellPressureCol]
+    imbSell =>           [buyPressureCol, imbSellGrad]
+    =>                   [buyPressureCol, sellPressureCol]
+
+plot(buyPressure, title = "Buying Pressure", linewidth = 2, color = colColBuy, style = plot.style_columns, display = display.all)
+plot(-sellPressure, title = "Selling Pressure", linewidth = 2, color = colColSell, style = plot.style_columns, display = display.all)
+
+Range = math.abs(close - open), min = math.min(close, open), max = math.max(close, open)
+
+buyCalc  = min + Range * ratioBuy
+sellCalc = max - Range * ratioSell
+
+pBig    = 0.0
+domSide = switch 
+    ratioBuy > ratioSell => "Buy" 
+    ratioSell > ratioBuy => "Sell"
+    => "Equal"
+
+if deltaMode
+    small = math.min(ratioBuy, ratioSell)
+    big   = math.max(ratioBuy, ratioSell)
+
+    pBig := small == 0 ? 1.0 : nz((big - small) / small)
+
+    switch domSide 
+        "Buy"  => buyCalc  := min + Range * math.min(pBig, 1), sellCalc := float(na) 
+        "Sell" => sellCalc := max - Range * math.min(pBig, 1), buyCalc := float(na) 
+
+[bordBuy, bordSell] = switch 
+    not showImbalance => [buyVolColor, sellVolColor]
+    imbBuy  =>           [imbBuyCol, imbBuyCol] 
+    imbSell =>           [imbSellCol, imbSellCol] 
+    =>                   [buyVolColor, sellVolColor]
+
+showBuyCandle  = showMain or (showImbalance and imbBuy)
+showSellCandle = showMain or (showImbalance and imbSell)
+
+plotcandle(showBuyCandle ? min : na, showBuyCandle ? buyCalc : na, showBuyCandle ? min : na, showBuyCandle ? buyCalc : na, color = buyPressureCol, force_overlay = true, bordercolor = bordBuy, display = display.pane)
+plotcandle(showSellCandle ? max : na, showSellCandle ? max : na, showSellCandle ? sellCalc : na, showSellCandle ? sellCalc : na, color = sellPressureCol, force_overlay = true, bordercolor = bordSell, display = display.pane)
+
+var buyDomVals   = array.new<float>()
+var sellDomVals  = array.new<float>()
+var buyAbsVals   = array.new<float>()
+var sellAbsVals  = array.new<float>()
+
+netDom = nz(buyPressure - sellPressure) / sum 
+rawNetDom = nz(rawBuyPressure - rawSellPressure) / rawSum
+
+barRange = math.max(high - low, syminfo.mintick)
+closePos = (close - low) / barRange
+
+buyDom  = math.max(netDom, 0)
+sellDom = math.max(-netDom, 0)
+
+buyBodyResult  = math.max(close - open, 0) / barRange
+sellBodyResult = math.max(open - close, 0) / barRange
+
+buyResult  = (buyBodyResult + closePos) / 2
+sellResult = (sellBodyResult + (1 - closePos)) / 2
+
+buyAbsRaw  = buyDom - buyResult
+sellAbsRaw = sellDom - sellResult
+
+buyDomVals.push(buyDom)
+sellDomVals.push(sellDom)
+buyAbsVals.push(buyAbsRaw)
+sellAbsVals.push(sellAbsRaw)
+
+if buyDomVals.size() > smoothLook
+    buyDomVals.shift()
+    sellDomVals.shift()
+    buyAbsVals.shift()
+    sellAbsVals.shift()
+
+buyAbsorption  = false
+sellAbsorption = false
+
+wpr = ta.wpr(14)
+
+[isExtendedBuy, isExtendedSell] = switch useExtendedRule
+    true => [wpr >= -20, wpr <= -80]
+    =>      [true, true]
+
+sizeLim = buyDomVals.size() >= smoothLook
+
+if showAbsorption and sizeLim
+    buyDomThresh   = buyDomVals.percentile_nearest_rank(absDomPct)
+    sellDomThresh  = sellDomVals.percentile_nearest_rank(absDomPct)
+    buyAbsThresh   = buyAbsVals.percentile_nearest_rank(absScorePct)
+    sellAbsThresh  = sellAbsVals.percentile_nearest_rank(absScorePct)
+
+    buyAbsorption  := buyDom >= buyDomThresh and buyAbsRaw >= buyAbsThresh
+    sellAbsorption := sellDom >= sellDomThresh and sellAbsRaw >= sellAbsThresh
+
+atr = ta.atr(14)
+
+condBuy = switch showAbsorption and buyAbsorption and isExtendedBuy
+    true => high + atr / 2 
+    =>      float(na) 
+
+condSell = switch showAbsorption and sellAbsorption and isExtendedSell
+    true => low - atr / 2
+    =>      float(na) 
+
+plotcandle(math.max(open, close), high, math.max(open, close), high, color = #00000000, wickcolor = #00000000, bordercolor = showAbsorption and buyAbsorption and isExtendedBuy ? absBuyCol : na, force_overlay = true, display = display.pane)
+plotcandle(math.min(open, close), low, math.min(open, close), low, color = #00000000, wickcolor = #00000000, bordercolor = showAbsorption and sellAbsorption and isExtendedSell ? absSellCol : na, force_overlay = true, display = display.pane)
+
+plot(condBuy,  title = "Buy Absorption", color = absBuyCol, linewidth = 3, force_overlay = true, style = plot.style_circles)
+plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 94), linewidth = 5, force_overlay = true, style = plot.style_circles)
+plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 96), linewidth = 7, force_overlay = true, style = plot.style_circles)
+plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 98), linewidth = 9, force_overlay = true, style = plot.style_circles)
+plot(condBuy,  title = "Buy Absorption", color = color.new(absBuyCol, 99), linewidth = 11, force_overlay = true, style = plot.style_circles)
+
+plot(condSell,  title = "Sell Absorption", color = absSellCol, linewidth = 3, force_overlay = true, style = plot.style_circles)
+plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 94), linewidth = 5, force_overlay = true, style = plot.style_circles)
+plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 96), linewidth = 7, force_overlay = true, style = plot.style_circles)
+plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 98), linewidth = 9, force_overlay = true, style = plot.style_circles)
+plot(condSell,  title = "Sell Absorption", color = color.new(absSellCol, 99), linewidth = 11, force_overlay = true, style = plot.style_circles)
+
+plotshape(condBuy,  title = "Buy Absorption",  style = shape.triangledown, location = location.abovebar, color = #00000000,  size = size.tiny, force_overlay = true, text = "Abs", textcolor = absBuyCol)
+plotshape(condSell, title = "Sell Absorption", style = shape.triangleup,   location = location.belowbar, color = #00000000, size = size.tiny, text = "Abs", force_overlay = true, textcolor = absSellCol)
+
+var tab = table.new(position.bottom_right, 99, 99, bgcolor = #20222C, border_color = #363843, frame_color = #363843, force_overlay = true, border_width = 1, frame_width = 1)
+
+if barstate.islast 
+    domSideTxt = switch
+        rawRatioBuy > rawRatioSell => "Buy"
+        rawRatioSell > rawRatioBuy => "Sell"
+        => "Equal"
+
+    domCol = switch domSideTxt
+        "Buy"  => buyVolColor
+        "Sell" => sellVolColor
+        => color.white
+
+    deltaRatioCol = switch math.sign(rawNetDom)
+        1  => buyVolColor
+        -1 => sellVolColor 
+        => color.white
+
+    imbTxt = switch
+        rawImbBuy  => "Buy"
+        rawImbSell => "Sell"
+        => "None"
+
+    imbCol = switch
+        rawImbBuy  => imbBuyCol
+        rawImbSell => imbSellCol
+        => color.white
+
+    absTxt = switch
+        buyAbsorption  => "Buy"
+        sellAbsorption => "Sell"
+        => "None"
+
+    absCol = switch
+        buyAbsorption  => absBuyCol
+        sellAbsorption => absSellCol
+        => color.white
+
+    var expCol = #181b27
+
+    tab.cell(0, 0, "Candle Radar", text_color = color.white)
+
+    tab.cell(0, 1, "Buy Side:", text_color = color.white, bgcolor = expCol, text_size = 12)
+    tab.cell(1, 1, str.tostring(rawBuyPressure, format.volume), text_color = buyVolColor, bgcolor = expCol, text_size = 12)
+
+    tab.cell(2, 1, "Sell Side:", text_color = color.white, bgcolor = expCol, text_size = 12)
+    tab.cell(3, 1, str.tostring(rawSellPressure, format.volume), text_color = sellVolColor, bgcolor = expCol, text_size = 12)
+
+    tab.cell(0, 2, "Buy %:", text_color = color.white, text_size = 12)
+    tab.cell(1, 2, str.tostring(rawRatioBuy * 100, format.percent), text_color = buyVolColor, text_size = 12)
+
+    tab.cell(2, 2, "Sell %:", text_color = color.white, text_size = 12)
+    tab.cell(3, 2, str.tostring(rawRatioSell * 100, format.percent), text_color = sellVolColor, text_size = 12)
+
+    tab.cell(0, 3, "Delta Ratio:", text_color = color.white, bgcolor = expCol, text_size = 12)
+    tab.cell(1, 3, str.tostring(rawNetDom * 100, format.percent), text_color = deltaRatioCol, bgcolor = expCol, text_size = 12)
+
+    tab.cell(2, 3, "Control:", text_color = color.white, bgcolor = expCol, text_size = 12)
+    tab.cell(3, 3, domSideTxt, text_color = domCol, bgcolor = expCol, text_size = 12)
+
+    tab.cell(0, 4, "Imbalance:", text_color = color.white, text_size = 12)
+    tab.cell(1, 4, imbTxt, text_color = imbCol, text_size = 12)
+
+    tab.cell(2, 4, "Absorption:", text_color = color.white, text_size = 12)
+    tab.cell(3, 4, absTxt, text_color = absCol, text_size = 12)
+
+    tab.merge_cells(0, 0, 3, 0)
+
+
+if barstate.islastconfirmedhistory
+    if showWarning 
+        tab2 = table.new(position.top_right, 99, 99, bgcolor = #20222C, border_color = #363843, frame_color = #363843, border_width = 1, frame_width = 1, force_overlay = true)
+        tab2.cell(0, 0, text = "Make Sure To Turn Off The Colors For TradingView's Candles ▲", text_color = color.white, text_size = size.small)
