@@ -226,6 +226,10 @@ plotcandle(math.min(open, close), low, math.min(open, close), low, color = #0000
 plotshape(condBuy,  title = "Buy Absorption",  style = shape.triangledown, location = location.abovebar, color = absBuyCol,  size = size.tiny, force_overlay = true)
 plotshape(condSell, title = "Sell Absorption", style = shape.triangleup,   location = location.belowbar, color = absSellCol, size = size.tiny, force_overlay = true)
 
+alertcondition(imbBuy, title = "Buy Imbalance", message = "Buy imbalance detected — buying volume ratio: {{ratioBuy}}")
+alertcondition(imbSell, title = "Sell Imbalance", message = "Sell imbalance detected — selling volume ratio: {{ratioSell}}")
+alertcondition((imbBuy or imbSell), title = "Any Imbalance", message = "Imbalance detected")
+
 if barstate.islastconfirmedhistory
     if showWarning 
         tab2 = table.new(position.top_right, 99, 99, bgcolor = #20222C, border_color = #363843, frame_color = #363843, border_width = 1, frame_width = 1, force_overlay = true)
