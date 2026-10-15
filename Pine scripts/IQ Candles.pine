@@ -205,9 +205,10 @@ if showAbsorption and sizeLim
 
     upperWick = high - math.max(open, close)
     lowerWick = math.min(open, close) - low
+    bodySize = math.abs(open - close) 
 
-    buyAbsorption  := buyDom >= buyDomThresh and buyAbsRaw > 0 and buyAbsRaw >= buyAbsThresh and upperWick > lowerWick
-    sellAbsorption := sellDom >= sellDomThresh and sellAbsRaw > 0 and sellAbsRaw >= sellAbsThresh and lowerWick > upperWick
+    buyAbsorption  := buyDom >= buyDomThresh and buyAbsRaw > 0 and buyAbsRaw >= buyAbsThresh and upperWick > lowerWick and upperWick > bodySize
+    sellAbsorption := sellDom >= sellDomThresh and sellAbsRaw > 0 and sellAbsRaw >= sellAbsThresh and lowerWick > upperWick and lowerWick > bodySize
 
 atr = ta.atr(14)
 

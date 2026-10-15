@@ -5,24 +5,11 @@
 indicator("Wick Shadow", overlay = true, max_boxes_count = 500)
 
 shadowColour = input.color(color.rgb(94, 39, 176), title="Shadow Colour", group= "Technical")
-// normalTransparency = input(80, title="Shadow Transparency", group= "Technical")
 significantShadowTransparency = input(70, title="Significant Shadow Transparency", group= "Technical")
 minWickProportion = input.float(0.2, title="Minimum wick proportion", group= "Technical", step=0.1)
-// normalShadowSize = input(20, title="Shadow Length", group= "Technical")
 significantShadowSize = input(300, title="Significant Shadow Length", group= "Technical")
-// volumeAvgPeriods = input(20, title="Volume Average Periods", group= "Technical")
-// minAvgMultiplier = input.float(1.3, title="Minimum Average Multiplier", group= "Technical", step=0.1)
 
 addShadow(int offset, color newColour = na, showAsSignificantShadow = false) => 
-    // avgVolume = ta.ema(volume[offset], volumeAvgPeriods)
-    // isHighVolume = volume[offset] > 0 and volume[offset] >= avgVolume[offset] * minAvgMultiplier
-
-    // isSignificantBar = showAsSignificantShadow
-    // if(isHighVolume)
-    //     isSignificantBar := true
-
-    // transparency = isSignificantBar ? significantShadowTransparency : normalTransparency
-    // shadowSize = isSignificantBar ? significantShadowSize : normalShadowSize
     transparency = significantShadowTransparency
     shadowSize = significantShadowSize
 
@@ -35,7 +22,7 @@ addShadow(int offset, color newColour = na, showAsSignificantShadow = false) =>
     lowerWick = isBullish ? open[offset] - low[offset] : close[offset] - low[offset]
 
     // Bearish wick
-    isBearishWick = upperWick >= fullRange * minWickProportion
+    isBearishWick = upperWick >= body * minWickProportion
 
     BearishWickTop = isBearishWick ? high[offset] : na
     BearishWickBottom = isBearishWick ? (isBullish ? close[offset] : open[offset]) : na
@@ -43,14 +30,13 @@ addShadow(int offset, color newColour = na, showAsSignificantShadow = false) =>
     box.new(bar_index - offset, BearishWickTop, bar_index + shadowSize - offset, BearishWickBottom, bgcolor=boxColour, border_color=boxColour)
 
     // Bullish wick
-    isBullishWick = lowerWick >= fullRange * minWickProportion
+    isBullishWick = lowerWick >= body * minWickProportion
 
     BullishWickTop = isBullishWick ? (isBullish ? open[offset] : close[offset]) : na
     BullishWickBottom = isBullishWick ? low[offset] : na
 
     box.new(bar_index - offset, BullishWickTop, bar_index + shadowSize - offset, BullishWickBottom, bgcolor=boxColour, border_color=boxColour)
 
-// addShadow(0, na)
 //////////////////
 pivotBarLength = input(4, title="Bars either side of pivot", group= "Technical")
 
@@ -62,5 +48,5 @@ pivotLow = ta.pivotlow(pivotBarLength, pivotBarLength)
 newPivotHigh = not na(pivotHigh)
 newPivotLow = not na(pivotLow)
 
-if(newPivotHigh or newPivotLow)
-    addShadow(pivotBarLength, showAsSignificantShadow = true)
+// if(newPivotHigh or newPivotLow)
+addShadow(pivotBarLength, showAsSignificantShadow = true)
