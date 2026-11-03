@@ -1,7 +1,8 @@
 // This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
 // © glenrutherford4
 // Detects liquidity sweeps: a candle wick takes out a previous swing high (or low) but the candle
-// closes back on the original side of the level. Arrow down marks a high sweep, arrow up a low sweep.
+// closes back on the original side of the level. A high sweep must be a bearish or doji candle, a low
+// sweep a bullish or doji candle. Arrow down marks a high sweep, arrow up a low sweep.
 
 //@version=6
 indicator("Liquidity Sweep", overlay = true, max_lines_count = 500)
@@ -9,12 +10,18 @@ indicator("Liquidity Sweep", overlay = true, max_lines_count = 500)
 pivotLength = input.int(1, title = "Swing Pivot Length", minval = 1, group = "Technical", tooltip = "Bars either side of a swing high/low for it to count as a liquidity level")
 maxLevelAge = input.int(200, title = "Max Level Age (bars)", minval = 1, group = "Technical", tooltip = "Levels older than this are ignored")
 minSweepAtr = input.float(0.0, title = "Min Wick Beyond Level (x ATR)", minval = 0.0, step = 0.05, group = "Technical", tooltip = "Wick must poke past the level by at least this multiple of ATR(14). 0 = any amount")
+dojiBodyPercent = input.float(10.0, title = "Doji Body % of Range", minval = 0.0, maxval = 100.0, step = 1.0, group = "Technical", tooltip = "A candle whose body is at most this % of its high-low range counts as a doji. A high sweep needs a bearish or doji candle, a low sweep a bullish or doji candle")
 showLines = input.bool(true, title = "Show Swept Level Lines", group = "Appearance")
 highColour = input.color(color.red, title = "High Sweep Colour", group = "Appearance")
 lowColour = input.color(color.green, title = "Low Sweep Colour", group = "Appearance")
 
 atr = ta.atr(14)
 minSweep = minSweepAtr * atr
+
+isDoji = math.abs(close - open) <= (high - low) * dojiBodyPercent / 100
+// A high sweep must be rejected by a bearish (or doji) candle, a low sweep by a bullish (or doji) one
+validHighCandle = close < open or isDoji
+validLowCandle = close > open or isDoji
 
 var array<float> highLevels = array.new<float>()
 var array<int> highBars = array.new<int>()
@@ -33,12 +40,13 @@ checkLevels(array<float> levels, array<int> bars, bool isHigh) =>
             pokedThrough = isHigh ? high > level : low < level
             closedBack = isHigh ? close < level : close > level
             depth = isHigh ? high - level : level - low
+            validCandle = isHigh ? validHighCandle : validLowCandle
 
             if bar_index - levelBar > maxLevelAge
                 array.remove(levels, i)
                 array.remove(bars, i)
             else if pokedThrough
-                if closedBack and depth >= minSweep
+                if closedBack and validCandle and depth >= minSweep
                     swept := true
                     if showLines
                         line.new(levelBar, level, bar_index, level, color = isHigh ? highColour : lowColour, style = line.style_dotted)
