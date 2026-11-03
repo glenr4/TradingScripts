@@ -1,0 +1,68 @@
+// This Pine Script™ code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © glenrutherford4
+// Detects liquidity sweeps: a candle wick takes out a previous swing high (or low) but the candle
+// closes back on the original side of the level. Arrow down marks a high sweep, arrow up a low sweep.
+
+//@version=6
+indicator("Liquidity Sweep", overlay = true, max_lines_count = 500)
+
+pivotLength = input.int(5, title = "Swing Pivot Length", minval = 1, group = "Technical", tooltip = "Bars either side of a swing high/low for it to count as a liquidity level")
+maxLevelAge = input.int(200, title = "Max Level Age (bars)", minval = 1, group = "Technical", tooltip = "Levels older than this are ignored")
+minSweepAtr = input.float(0.0, title = "Min Wick Beyond Level (x ATR)", minval = 0.0, step = 0.05, group = "Technical", tooltip = "Wick must poke past the level by at least this multiple of ATR(14). 0 = any amount")
+showLines = input.bool(true, title = "Show Swept Level Lines", group = "Appearance")
+highColour = input.color(color.red, title = "High Sweep Colour", group = "Appearance")
+lowColour = input.color(color.green, title = "Low Sweep Colour", group = "Appearance")
+
+atr = ta.atr(14)
+minSweep = minSweepAtr * atr
+
+var array<float> highLevels = array.new<float>()
+var array<int> highBars = array.new<int>()
+var array<float> lowLevels = array.new<float>()
+var array<int> lowBars = array.new<int>()
+
+// Checks every open level. A wick through a level that closes back inside is a sweep; a close
+// through the level is a break. Either way the level is consumed.
+checkLevels(array<float> levels, array<int> bars, bool isHigh) =>
+    swept = false
+    if array.size(levels) > 0
+        for i = array.size(levels) - 1 to 0
+            level = array.get(levels, i)
+            levelBar = array.get(bars, i)
+
+            pokedThrough = isHigh ? high > level : low < level
+            closedBack = isHigh ? close < level : close > level
+            depth = isHigh ? high - level : level - low
+
+            if bar_index - levelBar > maxLevelAge
+                array.remove(levels, i)
+                array.remove(bars, i)
+            else if pokedThrough
+                if closedBack and depth >= minSweep
+                    swept := true
+                    if showLines
+                        line.new(levelBar, level, bar_index, level, color = isHigh ? highColour : lowColour, style = line.style_dotted)
+                array.remove(levels, i)
+                array.remove(bars, i)
+    swept
+
+highSweep = checkLevels(highLevels, highBars, true)
+lowSweep = checkLevels(lowLevels, lowBars, false)
+
+// Register new swing points once they are confirmed (pivotLength bars later)
+pivotHigh = ta.pivothigh(high, pivotLength, pivotLength)
+pivotLow = ta.pivotlow(low, pivotLength, pivotLength)
+
+if not na(pivotHigh)
+    array.push(highLevels, pivotHigh)
+    array.push(highBars, bar_index - pivotLength)
+
+if not na(pivotLow)
+    array.push(lowLevels, pivotLow)
+    array.push(lowBars, bar_index - pivotLength)
+
+plotshape(highSweep, title = "High Sweep", style = shape.arrowdown, location = location.abovebar, color = highColour, size = size.small)
+plotshape(lowSweep, title = "Low Sweep", style = shape.arrowup, location = location.belowbar, color = lowColour, size = size.small)
+
+alertcondition(highSweep, title = "High Sweep", message = "Liquidity sweep of highs")
+alertcondition(lowSweep, title = "Low Sweep", message = "Liquidity sweep of lows")
