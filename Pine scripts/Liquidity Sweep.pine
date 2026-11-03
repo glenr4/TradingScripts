@@ -6,7 +6,7 @@
 //@version=6
 indicator("Liquidity Sweep", overlay = true, max_lines_count = 500)
 
-pivotLength = input.int(2, title = "Swing Pivot Length", minval = 1, group = "Technical", tooltip = "Bars either side of a swing high/low for it to count as a liquidity level")
+pivotLength = input.int(1, title = "Swing Pivot Length", minval = 1, group = "Technical", tooltip = "Bars either side of a swing high/low for it to count as a liquidity level")
 maxLevelAge = input.int(200, title = "Max Level Age (bars)", minval = 1, group = "Technical", tooltip = "Levels older than this are ignored")
 minSweepAtr = input.float(0.0, title = "Min Wick Beyond Level (x ATR)", minval = 0.0, step = 0.05, group = "Technical", tooltip = "Wick must poke past the level by at least this multiple of ATR(14). 0 = any amount")
 showLines = input.bool(true, title = "Show Swept Level Lines", group = "Appearance")
@@ -50,8 +50,8 @@ highSweep = checkLevels(highLevels, highBars, true)
 lowSweep = checkLevels(lowLevels, lowBars, false)
 
 // Register new swing points once they are confirmed (pivotLength bars later)
-pivotHigh = ta.pivothigh(high, pivotLength, pivotLength)
-pivotLow = ta.pivotlow(low, pivotLength, pivotLength)
+pivotHigh = ta.pivothigh(high, pivotLength, 0)
+pivotLow = ta.pivotlow(low, pivotLength, 0)
 
 if not na(pivotHigh)
     array.push(highLevels, pivotHigh)
